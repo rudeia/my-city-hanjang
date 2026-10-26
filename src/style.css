@@ -1,0 +1,815 @@
+:root {
+  font-synthesis: none;
+  color-scheme: light;
+}
+body {
+  margin: 0;
+}
+.city-plan-app [hidden] {
+  display: none !important;
+}
+.city-plan-app {
+  --p-bg: #edf0eb;
+  --p-paper: #fffdf7;
+  --p-ink: #173f32;
+  --p-sub: #536a59;
+  --p-line: #d0dbcf;
+  --p-soft: #e4eddd;
+  --p-warm: #f2d3a1;
+  color: var(--p-ink);
+  background: var(--p-bg);
+  min-height: 100vh;
+  font:
+    15px/1.65 -apple-system,
+    BlinkMacSystemFont,
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    sans-serif;
+}
+.city-plan-app * {
+  box-sizing: border-box;
+}
+.city-plan-app button,
+.city-plan-app input,
+.city-plan-app textarea,
+.city-plan-app select {
+  font: inherit;
+}
+.city-plan-app button {
+  color: inherit;
+  border: 1px solid var(--p-line);
+  border-radius: 8px;
+  background: var(--p-paper);
+  padding: 8px 12px;
+  min-height: 40px;
+  cursor: pointer;
+}
+.city-plan-app button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.city-plan-app button[aria-pressed="true"],
+.city-plan-app .plan-primary {
+  color: var(--p-paper);
+  background: var(--p-ink);
+  border-color: var(--p-ink);
+}
+.city-plan-app :focus-visible {
+  outline: 3px solid #d39b4f;
+  outline-offset: 3px;
+}
+.city-plan-app a {
+  color: var(--p-ink);
+  text-underline-offset: 3px;
+}
+.city-plan-app label {
+  font-size: 13px;
+  font-weight: 500;
+  display: block;
+  margin: 13px 0 6px;
+}
+.city-plan-app input,
+.city-plan-app textarea,
+.city-plan-app select {
+  font-size: 16px;
+  color: var(--p-ink);
+  background: var(--p-paper);
+  border: 1px solid var(--p-line);
+  padding: 11px;
+  border-radius: 8px;
+  width: 100%;
+  min-width: 0;
+}
+.city-plan-app textarea {
+  min-height: 108px;
+  resize: vertical;
+  line-height: 1.8;
+}
+.city-plan-app h1 {
+  font-size: 29px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.4;
+  margin: 8px 0 16px;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.city-plan-app h2 {
+  font-size: 19px;
+  line-height: 1.5;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 5px 0 14px;
+  word-break: keep-all;
+}
+.city-plan-app h3 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 10px 0;
+}
+.city-plan-app p {
+  margin: 8px 0 15px;
+}
+.city-plan-app .kicker {
+  color: var(--p-sub);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+.city-plan-app .tiny {
+  font-size: 12px;
+  color: var(--p-sub);
+  overflow-wrap: anywhere;
+}
+.city-head {
+  max-width: none;
+  background: var(--p-paper);
+  border-bottom: 1px solid var(--p-line);
+  padding: 22px max(24px, calc((100% - 1180px) /2));
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.city-head .city-wordmark {
+  font-size: 25px;
+  letter-spacing: -0.04em;
+  font-weight: 600;
+  text-decoration: none;
+}
+.city-head p {
+  font-size: 12px;
+  color: var(--p-sub);
+  margin: 2px 0 0;
+}
+.save-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.save-actions button {
+  font-size: 12px;
+}
+.city-view-tabs {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  flex-basis: 100%;
+}
+.city-view-tabs button {
+  font-size: 13px;
+}
+.city-save-message {
+  padding: 11px 24px;
+  max-width: 1228px;
+  margin: auto;
+  color: var(--p-sub);
+  font-size: 13px;
+}
+.city-save-message.save-error {
+  color: #7c2636;
+  background: #f4e2e4;
+  border-radius: 8px;
+}
+.city-save-message button {
+  font-size: 12px;
+  margin-left: 10px;
+}
+.city-plan-app main {
+  max-width: 1228px;
+  margin: auto;
+  padding: 12px 24px 30px;
+}
+.city-work {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.city-intro {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 30px;
+  align-items: start;
+}
+.intro-copy {
+  padding: 20px 8px;
+}
+.intro-copy > p {
+  font-size: 14px;
+  color: var(--p-sub);
+}
+.intro-copy ol {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 19px;
+  margin: 27px 0;
+}
+.intro-copy li {
+  border-left: 2px solid var(--p-line);
+  padding-left: 14px;
+  font-size: 13px;
+  color: var(--p-sub);
+}
+.intro-copy li b {
+  display: block;
+  font-weight: 500;
+  color: var(--p-ink);
+  margin-bottom: 3px;
+}
+.plan-panel {
+  padding: 22px;
+  background: var(--p-paper);
+  border: 1px solid var(--p-line);
+  border-radius: 13px;
+  min-width: 0;
+}
+.declaration-preview {
+  background: var(--p-ink);
+  color: var(--p-paper);
+  padding: 20px;
+  border-radius: 10px;
+  font-size: 19px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+  margin: 12px 0 20px;
+}
+.plan-field {
+  margin: 13px 0;
+}
+.plan-field small {
+  display: block;
+  font-size: 11px;
+  color: var(--p-sub);
+  margin-top: 5px;
+}
+.plan-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 19px;
+}
+.plan-actions button {
+  font-size: 13px;
+}
+.concept-lens {
+  background: var(--p-soft);
+  padding: 13px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin: 17px 0;
+}
+.concept-lens b {
+  font-weight: 500;
+}
+.concept-lens p {
+  margin: 6px 0;
+}
+.concept-lens a {
+  font-size: 12px;
+}
+.city-plan-app details {
+  font-size: 13px;
+  margin: 16px 0;
+}
+.city-plan-app summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+.city-plan-app .design-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 13px;
+  flex-wrap: wrap;
+}
+.design-top p {
+  font-size: 12px;
+  color: var(--p-sub);
+  margin: 0;
+}
+.design-top button {
+  font-size: 12px;
+  min-height: 34px;
+  padding: 6px 10px;
+}
+.plan-overview {
+  background: var(--p-paper);
+  border: 1px solid var(--p-line);
+  padding: 19px 22px;
+  border-radius: 12px;
+  margin-bottom: 18px;
+}
+.plan-overview h1 {
+  font-size: 24px;
+  margin: 4px 0 14px;
+}
+.declaration-chain {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.declaration-chain small {
+  color: var(--p-sub);
+  font-size: 11px;
+}
+.declaration-chain p {
+  font-size: 14px;
+  margin: 3px 0;
+  overflow-wrap: anywhere;
+}
+.design-columns {
+  display: grid;
+  grid-template-columns: 1.12fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+.plan-section-tabs,
+.plan-number-tabs {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.plan-section-tabs button {
+  font-size: 12px;
+  padding: 5px 8px;
+  min-height: 33px;
+}
+.plan-number-tabs button {
+  font-size: 12px;
+  padding: 6px 10px;
+  min-height: 34px;
+}
+.map-tools {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin: 13px 0;
+}
+.map-tools button {
+  font-size: 12px;
+  padding: 5px 8px;
+  min-height: 34px;
+}
+.strategy-label {
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  color: var(--p-sub);
+  font-size: 12px !important;
+}
+.strategy-label select {
+  width: auto;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+.facility-grid {
+  --lane: 18px;
+  display: grid;
+  grid-template-columns: var(--lane) repeat(5, minmax(0, 1fr) var(--lane));
+  grid-template-rows: var(--lane) repeat(4, minmax(52px, 1fr) var(--lane));
+  background: #eaf0e6;
+  border-radius: 9px;
+  padding: 4px;
+  margin: 14px 0;
+  min-width: 0;
+  isolation: isolate;
+}
+.city-plan-app .facility-cell {
+  border: 1px solid #d5ddcf !important;
+  border-radius: 6px !important;
+  background: var(--p-paper);
+  padding: 3px !important;
+  min-width: 0;
+  min-height: 52px;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  position: relative;
+  z-index: 1;
+  overflow-wrap: anywhere;
+  gap: 3px;
+}
+.facility-cell small {
+  font-size: 10px;
+}
+.city-plan-app .facility-cell[data-type="home"] {
+  background: #dce8ed;
+}
+.city-plan-app .facility-cell[data-type="service"] {
+  background: var(--p-warm);
+}
+.city-plan-app .facility-cell[data-type="park"] {
+  background: var(--p-soft);
+}
+.city-plan-app .facility-cell[data-type="work"] {
+  background: #efdfe0;
+}
+.city-plan-app .facility-cell[data-type="landmark"] {
+  background: #d5e6ce;
+  border-color: var(--p-ink) !important;
+}
+.city-plan-app .road-edge {
+  padding: 0 !important;
+  min-height: 0 !important;
+  min-width: 0;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent;
+  position: relative;
+  opacity: 1 !important;
+  z-index: 2;
+}
+.road-edge::after {
+  content: "";
+  position: absolute;
+  background: #b9c9b6;
+  border-radius: 4px;
+  pointer-events: none;
+}
+.road-h::after {
+  top: calc(50% - 1px);
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+.road-v::after {
+  left: calc(50% - 1px);
+  top: 0;
+  bottom: 0;
+  width: 2px;
+}
+.city-plan-app .road-edge.present {
+  background: transparent;
+  color: inherit;
+}
+.road-edge.present::after {
+  background: #526857;
+}
+.road-h.present::after {
+  height: 8px;
+  top: calc(50% - 4px);
+  left: -10px;
+  right: -10px;
+}
+.road-v.present::after {
+  width: 8px;
+  left: calc(50% - 4px);
+  top: -10px;
+  bottom: -10px;
+}
+.road-mode .road-edge:not(.present):hover::after {
+  background: #728d6a;
+}
+.road-edge:focus-visible {
+  outline: 2px solid #bd8232;
+  outline-offset: 0;
+}
+.road-junction {
+  z-index: 3;
+  pointer-events: none;
+  place-self: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+.road-junction.present {
+  background: #526857;
+}
+.map-notice {
+  font-size: 12px;
+  color: var(--p-sub);
+  min-height: 40px;
+  margin: 10px 0 5px !important;
+}
+.city-plan-app .strategies-heading {
+  margin-top: 23px;
+}
+.city-plan-app .strategy-summary {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-top: 8px;
+  padding: 12px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.strategy-summary b {
+  display: block;
+  font-weight: 500;
+}
+.strategy-summary small {
+  display: block;
+  font-size: 11px;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+.plan-checks {
+  margin-top: 18px;
+  border-top: 1px solid var(--p-line);
+  padding-top: 15px;
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--p-sub);
+}
+.plan-checks [data-done="true"] {
+  color: var(--p-ink);
+}
+.output-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 17px;
+}
+.output-actions p {
+  font-size: 13px;
+  color: var(--p-sub);
+  margin: 0;
+}
+.output-actions > div {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.output-actions button {
+  font-size: 13px;
+}
+.plan-document {
+  max-width: 850px;
+  margin: auto;
+  background: var(--p-paper);
+  border-top: 6px solid var(--p-ink);
+  padding: 34px;
+}
+.plan-document > h1 {
+  font-size: 30px;
+}
+.report-section {
+  border-top: 1px solid var(--p-line);
+  margin-top: 25px;
+  padding-top: 20px;
+}
+.report-section h2 {
+  font-size: 19px;
+}
+.report-section p {
+  font-size: 14px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.report-section button {
+  font-size: 11px;
+  min-height: 28px;
+  padding: 4px 8px;
+}
+.report-strategy {
+  margin: 18px 0 25px;
+}
+.report-section .missing {
+  color: var(--p-sub);
+  font-size: 13px;
+}
+.report-sources {
+  border-top: 1px solid var(--p-line);
+  padding-top: 14px;
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--p-sub);
+  overflow-wrap: anywhere;
+}
+.plan-map-readonly {
+  margin: 20px 0;
+}
+.plan-map-readonly svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 650px;
+}
+.plan-map-readonly figcaption {
+  font-size: 11px;
+  color: var(--p-sub);
+  margin-top: 9px;
+}
+.plan-board-image {
+  max-width: 900px;
+  margin: auto;
+}
+.plan-board-image > svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.city-footer {
+  max-width: 1228px;
+  margin: auto;
+  padding: 10px 24px 30px;
+  font-size: 12px;
+  color: var(--p-sub);
+}
+@media (max-width: 950px) {
+  .design-columns {
+    grid-template-columns: 1fr;
+  }
+  .facility-grid {
+    max-width: 650px;
+  }
+  .city-intro {
+    gap: 18px;
+    grid-template-columns: 0.8fr 1.2fr;
+  }
+  .city-plan-app h1 {
+    font-size: 25px;
+  }
+}
+@media (max-width: 660px) {
+  .city-head {
+    padding: 18px 15px;
+  }
+  .city-plan-app main {
+    padding: 10px 13px 25px;
+  }
+  .city-intro {
+    grid-template-columns: 1fr;
+  }
+  .intro-copy {
+    padding: 0;
+  }
+  .intro-copy ol {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 18px 0;
+  }
+  .intro-copy li {
+    font-size: 11px;
+    padding-left: 8px;
+  }
+  .plan-panel {
+    padding: 16px;
+  }
+  .declaration-chain {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .declaration-chain small {
+    display: inline-block;
+    min-width: 65px;
+  }
+  .declaration-chain p {
+    display: inline;
+  }
+  .plan-overview {
+    padding: 17px;
+  }
+  .facility-grid {
+    --lane: 13px;
+  }
+  .city-plan-app .facility-cell {
+    font-size: 11px;
+    min-height: 48px;
+    aspect-ratio: auto;
+  }
+  .facility-cell span {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .facility-cell small {
+    font-size: 9px;
+  }
+  .city-save-message {
+    padding: 10px 15px;
+  }
+  .city-footer {
+    padding: 10px 15px 25px;
+  }
+  .plan-document {
+    padding: 24px 17px;
+  }
+  .save-actions {
+    font-size: 11px;
+    gap: 7px;
+  }
+  .save-actions button {
+    min-height: 34px;
+  }
+  .declaration-preview {
+    font-size: 17px;
+  }
+  .city-plan-app .plan-editor h2 {
+    font-size: 20px;
+  }
+  .road-h.present::after {
+    left: -7px;
+    right: -7px;
+  }
+  .road-v.present::after {
+    top: -7px;
+    bottom: -7px;
+  }
+}
+@media print {
+  .city-plan-app {
+    background: white;
+  }
+  .city-head,
+  .city-save-message,
+  .output-actions,
+  .city-footer,
+  .report-section button {
+    display: none !important;
+  }
+  .city-plan-app main,
+  .plan-document {
+    max-width: none;
+    padding: 0;
+    border: 0;
+  }
+  .plan-document p {
+    orphans: 3;
+    widows: 3;
+  }
+  .report-section {
+    break-inside: avoid;
+  }
+}
+
+.city-plan-app .writing-example {
+  margin: 8px 0 17px;
+  border-left: 2px solid var(--p-line);
+  padding-left: 12px;
+  font-size: 12px;
+}
+.writing-example .example-text {
+  color: var(--p-ink);
+  white-space: pre-wrap;
+}
+.writing-example p {
+  margin: 8px 0;
+}
+.activity-import {
+  max-width: 1180px;
+  margin: 14px auto;
+  padding: 22px;
+  background: var(--p-paper);
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
+}
+.activity-import button {
+  margin: 5px 8px 0 0;
+}
+.city-plan-app input[type="file"][hidden] {
+  display: none !important;
+}
+
+.reference-photo-editor {
+  border-top: 1px solid var(--p-line);
+  padding-top: 16px;
+  margin-top: 20px;
+}
+.reference-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.reference-heading h3 {
+  font-size: 15px;
+}
+.reference-photo {
+  margin: 12px 0;
+}
+.reference-photo img {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  background: #eaf0e6;
+  border-radius: 8px;
+}
+.reference-photo figcaption {
+  font-size: 12px;
+  color: var(--p-sub);
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+}
+.reference-remove {
+  font-size: 12px !important;
+  margin-top: 12px;
+}
+.report-section .reference-photo h3 {
+  font-size: 16px;
+}
