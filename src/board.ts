@@ -9,16 +9,17 @@ import {
   planningConcepts,
   planningSources,
   planChecks,
+  planReportSections,
   type CityPlan,
 } from "./model";
-const ink = "#173f32",
-  sub = "#53685a",
-  line = "#d0dbcf",
-  paper = "#fffdf7",
-  soft = "#e4eddd";
+const ink = "#293f49",
+  sub = "#596870",
+  line = "#d2dcd8",
+  paper = "#fffefd",
+  soft = "#edf5ef";
 const colors = {
   home: "#dce8ed",
-  service: "#f2d3a1",
+  service: "#f2eef8",
   park: soft,
   work: "#efdfe0",
   landmark: "#d5e6ce",
@@ -96,6 +97,8 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
     add(p.keywords, 25, ink, 500);
     y += 20;
   }
+  if(p.goodCity.trim()) { add("내가 생각하는 좋은 도시",23,sub,500); y+=8; add(p.goodCity,27); y+=20; }
+  if(p.goodCityCriteria.trim()){ add("좋은 도시를 판단할 나의 기준",23,sub,500); y+=8; add(p.goodCityCriteria,24); y+=20; }
   add(cityDeclaration(p) || "도시 선언을 쓰면 여기에 표시돼요.", 31);
   y += 30;
   const top = y,
@@ -117,6 +120,8 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
   s += text("약속을 만드는 세 전략", splitX, ry, 27, ink, 500);
   ry += 48;
   p.plans.forEach((strategy, i) => {
+    const noteStart = ry;
+    const noteContentStart = s.length;
     s += rect(splitX, ry - 14, rightWidth, 2, line);
     ry += 20;
     const title = paragraph(
@@ -149,6 +154,9 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
       ry += label.height + 10;
     }
     ry += 23;
+    const noteContent = s.slice(noteContentStart);
+    s = s.slice(0, noteContentStart) + rect(splitX - 16, noteStart - 24, rightWidth + 24, ry - noteStart + 6, [soft, "#faeeee", "#eef3fa"][i], 3) + noteContent;
+    ry += 20;
   });
   y = Math.max(ry, top + (mapWidth * 408) / 504 + 85 + legend.height) + 40;
   const columnWidth = 680;
@@ -226,4 +234,45 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
     height,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img"><title>${xml(p.city || "나의 도시")} · 브랜드 보드</title><desc>보고서와 같은 학생 작성 내용, 시설 구상도와 칸 사이 도로망</desc><style>text{font-family:${font};font-kerning:normal}</style>${rect(0, 0, width, height, paper)}${s}</svg>`,
   };
+}
+
+/** Full report output uses the same paragraphs as the readable report, without truncation. */
+export function makePlanReport(p: CityPlan): BoardDocument {
+  const width = 1600, pad = 100, inner = width - pad * 2;
+  let y = 100, s = "";
+  const add = (value: string, size = 26, color = ink, weight = 400) => {
+    const part = paragraph(value, pad, y, inner, size, color, weight);
+    s += part.svg;
+    y += part.height + 18;
+  };
+  add("도시 한 장 · 나의 도시 계획 보고서", 24, sub);
+  add(p.city || "도시 이름 미작성", 60, ink, 600);
+  planReportSections(p).forEach((section, index) => {
+    y += 32;
+    s += rect(pad, y, inner, 2, line);
+    y += 54;
+    add(`${index + 1}. ${section.title}`, 32, ink, 500);
+    const values = section.paragraphs.filter(value => value.trim());
+    if (values.length) values.forEach(value => add(value));
+    else add("미작성", 24, sub);
+    if (index === 1 && p.referenceImage) {
+      s += `<image href="${p.referenceImage}" x="${pad}" y="${y}" width="${inner}" height="440" preserveAspectRatio="xMidYMid meet"/>`;
+      y += 480;
+      add(p.referenceTitle || p.modelCity || "참고사진", 23, sub);
+      add("출처: " + (p.referenceSource || "미작성"), 22, sub);
+    }
+    if (index === 3) {
+      s += cityMapSVG(p, pad, y, 900);
+      y += 900 * 408 / 504 + 32;
+    }
+  });
+  const sources = selectedSources(p);
+  if (sources.length) {
+    y += 24;
+    add("참고 자료", 28, ink, 500);
+    sources.forEach(id => add(`${planningSources[id].name} · DOI ${planningSources[id].doi}`, 22, sub));
+  }
+  const height = Math.ceil(Math.max(1500, y + 70));
+  return { name: "계획 보고서", width, height,
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img"><title>${xml(p.city || "나의 도시")} · 계획 보고서</title><style>text{font-family:${font};font-kerning:normal}</style>${rect(0, 0, width, height, paper)}${s}</svg>` };
 }

@@ -10,6 +10,12 @@ export const facilityNames = {
 export type Facility = "" | keyof typeof facilityNames;
 export type PlanCell = { type: Facility; strategy: number | null };
 export const planFields = {
+  theoryCommon: { label: "여러 관점에서 공통으로 중요하게 본 점", max: 700 },
+  theoryTension: { label: "관점의 차이와 함께 살필 조건", max: 700 },
+  theoryPriority: { label: "내 도시에서 우선할 관점과 그 이유", max: 700 },
+  goodCity: { label: "내가 생각하는 좋은 도시", max: 500 },
+  goodCityReason: { label: "이렇게 정의한 근거", max: 700 },
+  goodCityCriteria: { label: "내 도시에서 확인할 기준 2~3가지", max: 700 },
   modelCity: { label: "참고할 모델 도시", max: 160 },
   modelReason: { label: "이 도시를 고른 이유", max: 700 },
   modelLearn: { label: "사진·지도·자료에서 찾은 특징과 배울 점", max: 700 },
@@ -40,77 +46,126 @@ export const strategyFields = {
 } as const;
 export type StrategyField = keyof typeof strategyFields;
 export const planningConcepts = {
+  compact: {
+    name: "압축 도시·스마트 성장",
+    text: "무분별한 도시 확장을 줄이고 도시 기능을 공간적으로 집약하는 계획. / 보행 환경, 대중교통·자전거 이용과 시설 간 연결 검토.",
+    textbook: "미래엔 『도시의 미래 탐구』 Ⅳ. 도시의 미래 · 지속가능성과 회복력을 높이는 도시 계획 · 170~171쪽",
+  },
+  universal: {
+    name: "유니버설 디자인",
+    text: "연령·성별·장애 유무와 관계없이 모든 사람을 고려하는 디자인. / 시설의 존재뿐 아니라 출입·이동·이용 과정의 장벽 검토.",
+    textbook: "미래엔 『도시의 미래 탐구』 Ⅳ. 도시의 미래 · 유니버설 디자인 사례 · 166쪽",
+  },
+  place: {
+    name: "장소감·도시 정체성",
+    text: "생활 경험을 통해 장소에 부여하는 주관적 의미와 도시의 고유한 특성. / 주민이 자주 찾는 장소와 기억·애착을 형성할 공간 검토.",
+    textbook: "미래엔 『도시의 미래 탐구』 Ⅰ. 삶의 공간, 도시 · 도시의 주관적 의미 · 13쪽",
+  },
+  publicness: {
+    name: "도시의 공공성",
+    text: "도시 공간과 자산을 함께 이용하고 관리하는 문제를 살피는 관점. / 이용할 수 있는 주민의 범위, 관리 주체와 의사결정 방법 검토.",
+    textbook: "미래엔 『도시의 미래 탐구』 Ⅳ. 도시의 미래 · 도시의 공공성과 도시 민주주의 · 177쪽부터",
+  },
   livability: {
     name: "거주 적합성",
-    text: "도시의 환경·시설과 주민이 느끼는 생활의 질을 함께 살펴요. 사람마다 중요한 조건이 다를 수 있어요.",
+    text: "생활하기에 알맞은 도시의 조건. / 환경·시설과 주민이 느끼는 생활의 질 검토. 주민마다 중요하게 여기는 조건의 차이 고려.",
+    textbook: "미래엔 『도시의 미래 탐구』 Ⅰ. 삶의 공간, 도시 · 살기 좋은 도시의 조건 · 38쪽",
   },
   access: {
     name: "접근성",
-    text: "필요한 장소와 서비스를 실제로 이용하기 쉬운 정도예요. 거리뿐 아니라 경로·시간·비용도 함께 살펴요.",
+    text: "필요한 장소와 서비스를 실제로 이용하기 쉬운 정도. / 거리·이동 경로·시간·비용과 이용자의 조건 검토.",
+    textbook: "미래엔 『도시의 미래 탐구』 Ⅲ. 도시 문제와 공간 정의 · 공간 정의와 자원에 대한 접근 · 122쪽",
   },
   justice: {
     name: "공간 정의",
-    text: "공간과 서비스의 혜택·부담, 결정에 참여할 기회가 누구에게 돌아가는지 살펴요.",
+    text: "공간과 서비스의 혜택·부담 및 참여 기회의 공정한 배분. / 취약한 지역·계층에 부담이 집중되는지 검토.",
+    textbook: "미래엔 『도시의 미래 탐구』 Ⅲ. 도시 문제와 공간 정의 · 도시 환경 문제와 재난의 공간 불평등 · 122쪽",
   },
   sustainability: {
     name: "지속가능성",
-    text: "현재의 생활과 미래 세대의 환경·자원 이용 기회를 함께 고려해요. 환경·생활·운영 비용을 함께 살펴요.",
+    text: "현재와 미래 세대의 환경·자원 이용 기회를 함께 고려하는 관점. / 도시의 환경·사회·경제 조건과 운영 부담 검토.",
+    textbook: "미래엔 『도시의 미래 탐구』 Ⅳ. 도시의 미래 · 도시의 지속가능성과 회복력 · 164~165쪽",
   },
   resilience: {
     name: "회복력",
-    text: "위기에도 중요한 생활 기능을 유지·회복하고 변화에 적응하는 관점이에요. 누구의 어떤 기능을 지킬지도 물어요.",
+    text: "위기 속에서도 중요한 생활 기능을 유지·회복하고 변화에 적응하는 역량. / 누구의 어떤 기능을 지킬 것인지 검토.",
+    textbook: "미래엔 『도시의 미래 탐구』 Ⅳ. 도시의 미래 · 도시의 지속가능성과 회복력 · 165쪽",
   },
   branding: {
     name: "도시 정체성과 브랜딩",
-    text: "도시가 지향하는 가치와 특징을 이름·상징, 공간·정책·주민의 경험으로 연결해요.",
+    text: "도시가 지향하는 가치와 고유한 특징을 이름·상징·공간·정책·주민 경험으로 연결하는 과정. / 브랜드에 담은 가치가 실제 공간 계획에서 드러나는지 검토.",
+    textbook: "미래엔 『도시의 미래 탐구』 Ⅱ. 변화하는 도시 · 도시 브랜딩과 건축 · 69쪽",
   },
   participation: {
     name: "시민 참여",
-    text: "생활이 달라질 당사자의 의견을 어떻게 듣고 계획과 결정에 반영할지 생각해요.",
+    text: "생활이 달라질 당사자의 의견을 계획과 의사결정에 반영하는 과정. / 의견 수렴 대상·방법·반영 범위 검토.",
+    textbook: "미래엔 『도시의 미래 탐구』 Ⅳ. 도시의 미래 · 도시의 공공성과 도시 민주주의 · 177쪽부터",
   },
   inclusion: {
     name: "다양성과 포용",
-    text: "서로 다른 생활 조건의 주민이 공간·서비스·기회에서 배제되지 않는지 살펴요.",
+    text: "서로 다른 생활 조건의 주민이 공간·서비스·기회에서 배제되지 않도록 하는 관점. / 연령·장애·문화적 차이에 따른 이용 조건 검토.",
+    textbook: "미래엔 『도시의 미래 탐구』 Ⅳ. 도시의 미래 · 유니버설 디자인 사례 · 166쪽",
   },
 } as const;
 export const planningSources = {
   M: {
     name: "Moreno 외(2021) · 15분 도시",
     type: "개념 제안 논문",
-    text: "일상 기능에 가까이 접근하는 도시를 구상하는 관점을 다뤄요. 특정 배치가 모든 도시에서 같은 효과를 낸다는 뜻으로 읽지 않아요.",
+    text: "일상 기능에 가까이 접근할 수 있는 도시를 제안하는 개념 연구. 도시별 조건에 따른 적용 검토 필요.",
     doi: "10.3390/smartcities4010006",
   },
   K: {
     name: "Kavaratzis(2004) · 도시 브랜딩",
     type: "이론적 틀 제안",
-    text: "도시 이미지와 브랜드를 주민이 도시와 관계 맺고 경험하는 과정과 함께 살펴요. 이름·상징을 공간 계획과 연결하는 데 참고할 수 있어요.",
+    text: "도시 이미지와 주민의 경험을 연결하는 브랜딩의 이론적 틀. 이름·상징과 공간 계획의 일관성 검토에 활용.",
     doi: "10.1057/palgrave.pb.5990005",
   },
   R: {
     name: "Meerow 외(2016) · 도시 회복력",
     type: "문헌 검토 연구",
-    text: "누구를 위한 어떤 기능의 회복인지 묻는 관점을 제시해요. 시설 하나로 재난 대응 효과를 입증한 자료는 아니에요.",
+    text: "도시 회복력의 정의와 쟁점을 정리한 문헌 검토. 보호할 주민과 생활 기능의 명확화에 활용. 개별 시설의 재난 대응 효과를 입증한 연구는 아님.",
     doi: "10.1016/j.landurbplan.2015.11.011",
   },
   A: {
     name: "Arnstein(1969) · 시민 참여",
     type: "참여 유형론",
-    text: "계획과 결정에 시민이 갖는 영향력을 살펴요. 의견을 듣는 것과 실제 결정에 반영하는 것을 구분하는 데 참고해요.",
+    text: "시민이 의사결정에 갖는 권한에 따라 참여 수준을 구분한 유형론. 의견 청취와 결정 권한의 차이 검토에 활용.",
     doi: "10.1080/01944366908977225",
   },
+  E: {
+    name: "Ewing·Cervero(2010) · 도시 공간과 이동",
+    type: "메타분석",
+    text: "도시 공간의 특성과 이동 행태의 관계를 종합한 연구. 시설의 조합·도로 연결·목적지 접근을 함께 검토하는 데 활용.",
+    doi: "10.1080/01944361003766766",
+  },
+  W: {
+    name: "Wolch 외(2014) · 녹지 조성과 환경 정의",
+    type: "문헌 검토·도시 녹화 전략 비교",
+    text: "녹지의 편익과 함께 주거비 상승·기존 주민의 이주 부담 가능성을 검토. 녹지 계획의 혜택과 부담을 함께 평가하는 데 활용.",
+    doi: "10.1016/j.landurbplan.2014.01.017",
+  },
+  P: {
+    name: "Rigolon(2016) · 공원 접근의 불평등",
+    type: "실증 연구 문헌 검토",
+    text: "공원 접근을 거리·면적·질로 나누어 불평등을 검토한 연구. 공원의 수와 위치만으로 주민의 이용 기회를 판단하지 않도록 활용.",
+    doi: "10.1016/j.landurbplan.2016.05.017",
+  },
+
 } as const;
 export type Strategy = Record<StrategyField, string> & {
   concept: "" | keyof typeof planningConcepts;
   source: "" | keyof typeof planningSources;
 };
-export type PlanView = "reference" | "intro" | "design" | "report" | "board";
-export type PlanSection = "plans" | "values" | "brand" | "reflection";
+export type PlanView = "theory" | "reference" | "intro" | "design" | "report" | "board";
+export type PlanSection = "research" | "plans" | "values" | "brand" | "reflection";
 export type CityPlan = Record<PlanField, string> & {
   version: 1;
   started: boolean;
   view: PlanView;
   section: PlanSection;
   selectedPlan: number;
+  theoryConcepts: Exclude<Strategy["concept"], "">[];
+  theorySources: Exclude<Strategy["source"], "">[];
   plans: Strategy[];
   cells: PlanCell[];
   roads: string[];
@@ -124,7 +179,9 @@ export function newCityPlan(): CityPlan {
     >),
     version: 1,
     started: false,
-    view: "reference",
+    view: "theory",
+    theoryConcepts: [],
+    theorySources: [],
     section: "plans",
     selectedPlan: 0,
     plans: Array.from({ length: 3 }, () => ({
@@ -199,8 +256,8 @@ export function cleanCityPlan(value: unknown): CityPlan {
   if (
     v.version !== 1 ||
     typeof v.started !== "boolean" ||
-    !["reference", "intro", "design", "report", "board"].includes(String(v.view)) ||
-    !["plans", "values", "brand", "reflection"].includes(String(v.section)) ||
+    !["theory", "reference", "intro", "design", "report", "board"].includes(String(v.view)) ||
+    !["research", "plans", "values", "brand", "reflection"].includes(String(v.section)) ||
     !Number.isInteger(v.selectedPlan) ||
     Number(v.selectedPlan) < 0 ||
     Number(v.selectedPlan) > 2
@@ -212,6 +269,15 @@ export function cleanCityPlan(value: unknown): CityPlan {
       throw Error(`${planFields[key].label}의 길이를 확인해 주세요.`);
     out[key] = text;
   }
+  function selections(key:string,legacyKey:string,choices:Record<string,unknown>) {
+    const legacy=v[legacyKey]??"";
+    if(v[key]===undefined && (typeof legacy!=="string" || (legacy!==""&&!Object.hasOwn(choices,legacy))))throw Error("이론적 배경의 개념과 자료를 확인해 주세요.");
+    const values=v[key]===undefined?(legacy?[legacy]:[]):v[key];
+    if(!Array.isArray(values)||values.length>Object.keys(choices).length||values.some(x=>typeof x!=="string"||!Object.hasOwn(choices,x))||new Set(values).size!==values.length)throw Error("비교할 개념과 연구 선택을 확인해 주세요.");
+    return values as string[];
+  }
+  out.theoryConcepts=selections("theoryConcepts","theoryConcept",planningConcepts) as CityPlan["theoryConcepts"];
+  out.theorySources=selections("theorySources","theorySource",planningSources) as CityPlan["theorySources"];
   if (!Array.isArray(v.plans) || v.plans.length !== 3) throw Error("전략 세 개를 확인해 주세요.");
   out.plans = v.plans.map((raw) => {
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw Error("전략을 확인해 주세요.");
@@ -277,6 +343,7 @@ export function cleanCityPlan(value: unknown): CityPlan {
 export const hasText = (s: string) => !!s.trim();
 export function planChecks(p: CityPlan) {
   return [
+    {name:"관점 비교와 좋은 도시의 기준",done:[p.theoryCommon,p.theoryTension,p.theoryPriority,p.goodCity,p.goodCityReason,p.goodCityCriteria].every(hasText)},
     {
       name: "모델 도시 살펴보기",
       done: [p.modelCity, p.modelReason, p.modelLearn, p.modelAdapt].every(hasText),
@@ -311,11 +378,20 @@ export function cityDeclaration(p: CityPlan) {
 }
 export function selectedSources(p: CityPlan) {
   return [
-    ...new Set(p.plans.map((s) => s.source).filter((s): s is keyof typeof planningSources => !!s)),
+    ...new Set([...p.theorySources,...p.plans.map((s) => s.source)].filter((s): s is keyof typeof planningSources => !!s)),
   ];
 }
 export function planReportSections(p: CityPlan) {
   return [
+    {title:"이론적 배경과 내가 생각하는 좋은 도시",paragraphs:[
+      p.goodCity ? "좋은 도시의 정의: " + p.goodCity : "",
+      p.theoryConcepts.length ? "비교를 위해 선택한 교과 개념: " + p.theoryConcepts.map(key=>planningConcepts[key].name).join(", ") : "",
+      p.theorySources.length ? "비교를 위해 선택한 연구: " + p.theorySources.map(key=>planningSources[key].name).join(", ") : "",
+      p.theoryCommon ? "공통으로 중요하게 본 점: "+p.theoryCommon : "",
+      p.theoryTension ? "관점의 차이·상충·보완: "+p.theoryTension : "",
+      p.theoryPriority ? "우선할 관점과 이유: "+p.theoryPriority : "",
+      p.goodCityReason ? "정의한 근거: " + p.goodCityReason : "",p.goodCityCriteria ? "내 설계의 기준: " + p.goodCityCriteria : "",
+    ]},
     {
       title: "참고한 모델 도시",
       paragraphs: [p.modelCity, p.modelReason, p.modelLearn, p.modelAdapt, p.referenceSource],

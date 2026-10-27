@@ -14,9 +14,6 @@ export function ReferencePhotoView({ plan }: { plan: CityPlan }) {
         <br />
         출처: {plan.referenceSource || "출처를 적어 주세요."}
       </figcaption>
-      <p className="tiny">
-        실제 도시를 살펴보는 참고자료예요. 학생이 계획한 구상도와 구분해 읽어요.
-      </p>
     </figure>
   ) : null;
 }
@@ -65,7 +62,7 @@ export default function ReferencePhoto({
       if (data.length > 1400000)
         throw Error("사진이 너무 커요. 필요한 범위만 캡처해서 다시 올려 주세요.");
       onChange({ ...latest.current, referenceImage: data });
-      setMessage("사진을 넣었어요. 도시·장소 이름과 출처도 확인해 주세요.");
+      setMessage("사진을 넣었어요.");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "사진을 넣지 못했어요.");
     } finally {
@@ -77,7 +74,7 @@ export default function ReferencePhoto({
   return (
     <section className="reference-photo-editor">
       <div className="reference-heading">
-        <h3>참고할 도시의 위성사진</h3>
+        <h3>모델 도시의 위성사진</h3>
         <button type="button" onClick={() => input.current?.click()} disabled={disabled || busy}>
           {busy ? "사진 준비 중…" : plan.referenceImage ? "사진 바꾸기" : "사진 올리기"}
         </button>
@@ -91,10 +88,10 @@ export default function ReferencePhoto({
         onChange={(event) => void upload(event.target.files?.[0])}
       />
       {!plan.referenceImage && (
-        <p className="tiny">
-          지도에서 캡처한 위성사진이나 참고할 도시 사진을 올릴 수 있어요. 이 기기에 저장되며 활동
-          파일에도 함께 담깁니다.
-        </p>
+        <button className="photo-dropzone" type="button" onClick={() => input.current?.click()} disabled={disabled || busy}>
+          <span aria-hidden="true" className="photo-placeholder">＋</span>
+          <span>위성사진 붙이기</span><small>JPG · PNG · WebP · 10MB 이하</small>
+        </button>
       )}
       {plan.referenceImage && (
         <>
@@ -122,7 +119,7 @@ export default function ReferencePhoto({
           </button>
         </>
       )}
-      <label htmlFor="reference-source">참고자료 출처 (지도·사진·기사 등)</label>
+      <label htmlFor="reference-source">사진·자료 출처</label>
       <input
         id="reference-source"
         maxLength={600}

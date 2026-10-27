@@ -4,6 +4,11 @@ const m = await loadModule("src/model.ts"),
   b = await loadModule("src/board.ts");
 let p = m.newCityPlan();
 assert.equal(p.city, "");
+assert.equal(p.view,"theory");
+assert.equal(p.goodCity,"");
+assert.equal(p.section, "plans");
+assert.equal(m.cleanCityPlan({...p,section:"plans"}).section,"plans");
+assert.equal(m.cleanCityPlan({...p,section:"research"}).section,"research");
 assert.equal(p.cells.length, 20);
 assert.equal(p.roads.length, 0);
 assert.equal(p.plans.length, 3);
@@ -52,6 +57,12 @@ p = {
   values: "형평성",
   tradeoff: "운영 비용을 고려한다.",
   check: "지도와 운영 자료로 확인한다.",
+  theoryCommon:"이용 조건을 고려한다.",
+  theoryTension:"집중과 분산의 부담을 비교한다.",
+  theoryPriority:"취약한 주민을 먼저 고려한다.",
+  goodCity:"누구나 필요한 시설을 이용할 수 있는 도시",
+  goodCityReason:"접근성을 기준으로 생각한다.",
+  goodCityCriteria:"시설의 위치, 연결 경로",
   slogan: "함께 누리는 일상",
   mark: "연결",
   keywords: "함께,일상,연결",
@@ -80,6 +91,13 @@ const output = b.makePlanBoard(p);
 assert.ok(output.svg.includes(p.slogan));
 assert.ok(output.svg.includes(p.plans[0].place));
 assert.ok(output.svg.includes("10.3390/smartcities4010006"));
+const reportImage = b.makePlanReport(p);
+for (const value of [p.city, p.plans[0].reason, p.plans[0].learning, p.plans[0].limit, "10.3390/smartcities4010006"])
+  assert.ok(reportImage.svg.includes(value));
+assert.ok(reportImage.svg.includes('data-road="h:1:2" data-present="true"'));
+const hostileReport = b.makePlanReport({ ...p, city: "<script>bad</script>" });
+assert.ok(!hostileReport.svg.includes("<script>"));
+assert.ok(hostileReport.svg.includes("&lt;script&gt;"));
 const hostile = b.makePlanBoard({ ...p, city: "<script>bad</script>", meaning: '&< >"' });
 assert.ok(!hostile.svg.includes("<script>"));
 assert.ok(hostile.svg.includes("&lt;script&gt;"));
@@ -90,6 +108,10 @@ for (const plan of maximum.plans)
     plan[key] = "한".repeat(m.strategyFields[key].max);
 const maxDoc = b.makePlanBoard(maximum);
 assert.ok(maxDoc.height < 16000);
+const maxReport = b.makePlanReport(maximum);
+assert.ok(maxReport.height < 24000);
+for (const match of maxReport.svg.matchAll(/<text[^>]* y="([\d.]+)"/g))
+  assert.ok(Number(match[1]) < maxReport.height);
 for (const match of maxDoc.svg.matchAll(/<text[^>]* y="([\d.]+)"/g))
   assert.ok(Number(match[1]) < maxDoc.height);
 console.log(
@@ -104,3 +126,22 @@ delete legacyFile.referenceImage;
 delete legacyFile.modelCity;
 assert.equal(m.cleanCityPlan(legacyFile).referenceImage, "");
 assert.equal(m.cleanCityPlan(legacyFile).modelCity, "");
+
+const oldPlan=m.newCityPlan();for(const key of ["goodCity","goodCityReason","goodCityCriteria","theoryConcept","theorySource"])delete oldPlan[key];assert.equal(m.cleanCityPlan(oldPlan).goodCity,"");
+assert.ok(b.makePlanBoard(p).svg.includes(p.goodCity));
+assert.ok(b.makePlanReport(p).svg.includes(p.goodCity));
+
+const singleLegacy={...m.newCityPlan(),theoryConcept:"access",theorySource:"M"};delete singleLegacy.theoryConcepts;delete singleLegacy.theorySources;
+assert.deepEqual(m.cleanCityPlan(singleLegacy).theoryConcepts,["access"]);assert.deepEqual(m.cleanCityPlan(singleLegacy).theorySources,["M"]);
+const multi={...m.newCityPlan(),theoryConcepts:["access","justice","universal"],theorySources:["M","A"],theoryCommon:"이용 기회",theoryTension:"집중과 분산",theoryPriority:"취약한 주민의 이용 조건"};
+assert.deepEqual(m.cleanCityPlan(JSON.parse(JSON.stringify(multi))),multi);
+assert.deepEqual(m.selectedSources(multi),["M","A"]);
+assert.deepEqual(m.cleanCityPlan({...singleLegacy,theoryConcepts:[],theorySources:[]}).theoryConcepts,[]);
+assert.throws(()=>m.cleanCityPlan({...multi,theoryConcepts:["access","access"]}));assert.throws(()=>m.cleanCityPlan({...multi,theorySources:["wrong"]}));
+for(const t of ["이용 기회","집중과 분산","취약한 주민의 이용 조건"])assert.ok(b.makePlanReport(multi).svg.includes(t));
+
+assert.throws(()=>m.cleanCityPlan({...multi,theoryConcepts:null}));
+
+const addedStudies={...m.newCityPlan(),theorySources:["E","W","P"]};assert.deepEqual(m.cleanCityPlan(addedStudies).theorySources,["E","W","P"]);assert.deepEqual(m.selectedSources(addedStudies),["E","W","P"]);for(const id of addedStudies.theorySources)assert.ok(b.makePlanReport(addedStudies).svg.includes(m.planningSources[id].doi));
+
+assert.equal(m.planChecks({...p,theoryCommon:""})[0].done,false);

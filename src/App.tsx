@@ -33,15 +33,18 @@ import {
   type PlanSection,
   type PlanView,
 } from "./model";
-import { makePlanBoard } from "./board";
+import { makePlanBoard, makePlanReport } from "./board";
 import { createSaveQueue } from "./save-queue";
 import CityMap from "./CityMap";
+import {ConceptReading,ResearchReading} from "./LearningReading";
+import {conceptGuides,researchGuides} from "./learning";
 import ReferencePhoto, { ReferencePhotoView } from "./ReferencePhoto";
-import { exampleFor, type WritingExample } from "./examples";
+import { exampleFor, comparisonQuestions, type WritingExample } from "./examples";
 import "./style.css";
 
 const sectionNames: Record<PlanSection, string> = {
-  plans: "공간 전략",
+  research: "① 개념·연구 검토",
+  plans: "② 전략·배치",
   values: "가치·검토",
   brand: "브랜드",
   reflection: "공유·수정",
@@ -55,6 +58,7 @@ function TextField({
   short = false,
   help,
   example,
+  questions,
 }: {
   name: string;
   label: string;
@@ -64,15 +68,18 @@ function TextField({
   short?: boolean;
   help?: string;
   example?: WritingExample;
+  questions?: readonly string[];
 }) {
   const id = "plan-" + name;
   return (
     <div className="plan-field">
       <label htmlFor={id}>{label}</label>
+      {questions && <ul className="writing-questions" id={id+"-questions"} aria-label="작성 질문">{questions.map(q=><li key={q}>{q}</li>)}</ul>}
       {short ? (
         <input
           id={id}
           data-field={name}
+          aria-describedby={questions ? id+"-questions" : undefined}
           value={value}
           maxLength={max}
           onChange={(e) => onChange(e.target.value)}
@@ -81,22 +88,61 @@ function TextField({
         <textarea
           id={id}
           data-field={name}
+          aria-describedby={questions ? id+"-questions" : undefined}
           value={value}
           maxLength={max}
           onChange={(e) => onChange(e.target.value)}
         />
       )}
-      <small>{help || `${value.length}/${max}자`}</small>
+      {help && <small>{help}</small>}
       {example && (
         <details className="writing-example">
-          <summary>어떻게 쓰면 될까요?</summary>
+          <summary>작성 예시</summary>
           <p className="example-text">{example.text}</p>
           <p>{example.note}</p>
-          <small>가상 도시의 예시예요. 그대로 옮기기보다 내 계획에 맞게 써 보세요.</small>
         </details>
       )}
     </div>
   );
+}
+type ComparisonColumn={id:string;title:string;values:ReactNode[];reading:ReactNode};
+function ComparisonTable({label,rows,columns}:{label:string;rows:string[];columns:ComparisonColumn[]}) {
+  if(!columns.length)return <p className="comparison-empty">비교할 항목을 선택하면 여기에 표시됩니다.</p>;
+  return <div className="comparison-scroll" tabIndex={0} role="region" aria-label={label+" · 좌우로 비교"}>
+    <table className="comparison-table"><caption>{label}</caption><thead><tr><th scope="col">비교 항목</th>{columns.map(c=><th scope="col" key={c.id}>{c.title}</th>)}</tr></thead>
+      <tbody>{rows.map((row,i)=><tr key={row}><th scope="row">{row}</th>{columns.map(c=><td key={c.id}>{c.values[i]}</td>)}</tr>)}
+      <tr><th scope="row">상세 설명·사례</th>{columns.map(c=><td key={c.id}><details className="comparison-reading"><summary>{c.title} 자세히 보기</summary>{c.reading}</details></td>)}</tr></tbody>
+    </table>
+  </div>;
+}
+function TheoryStart({p,change,field}:{p:CityPlan;change:(p:CityPlan)=>void;field:(key:PlanField,short?:boolean)=>ReactNode}) {
+  const conceptColumns=p.theoryConcepts.map(key=>({id:key,title:planningConcepts[key].name,values:[conceptGuides[key].definition,conceptGuides[key].question,conceptGuides[key].distinction,planningConcepts[key].textbook],reading:<ConceptReading concept={key}/>}));
+  const researchColumns=p.theorySources.map(key=>({id:key,title:planningSources[key].name,values:[researchGuides[key].question,researchGuides[key].method,<ul key="findings">{researchGuides[key].findings.map(t=><li key={t}>{t}</li>)}</ul>,researchGuides[key].application,researchGuides[key].limitation],reading:<ResearchReading source={key}/>}));
+  return <div className="theory-start theory-comparison">
+    <section className="research-concept">
+      <h2>개념을 골라 비교하기</h2>
+      <fieldset className="comparison-choices"><legend>비교할 교과 개념 · 여러 개 선택</legend>{Object.entries(planningConcepts).map(([key,c])=><label key={key}><input type="checkbox" checked={p.theoryConcepts.includes(key as keyof typeof planningConcepts)} onChange={e=>change({...p,theoryConcepts:e.target.checked?[...p.theoryConcepts,key as keyof typeof planningConcepts]:p.theoryConcepts.filter(k=>k!==key)})}/><span>{c.name}</span></label>)}</fieldset>
+      <ComparisonTable label="교과 개념 비교" rows={["개념의 뜻","설계에서 살필 질문","구분해서 이해할 점","교과서 연결"]} columns={conceptColumns}/>
+    </section>
+    <section className="research-source">
+      <h2>연구의 관점 비교하기</h2>
+      <fieldset className="comparison-choices"><legend>비교할 연구 · 여러 개 선택</legend>{Object.entries(planningSources).map(([key,c])=><label key={key}><input type="checkbox" checked={p.theorySources.includes(key as keyof typeof planningSources)} onChange={e=>change({...p,theorySources:e.target.checked?[...p.theorySources,key as keyof typeof planningSources]:p.theorySources.filter(k=>k!==key)})}/><span>{c.name}</span></label>)}</fieldset>
+      <ComparisonTable label="연구 관점 비교" rows={["연구 질문","연구의 성격","핵심 내용","내 설계에 적용할 점","적용의 한계"]} columns={researchColumns}/>
+    </section>
+    <section className="comparison-notes">
+      <span className="kicker">비교에서 나의 판단으로</span><h2>여러 관점을 읽고 정리하기</h2><p className="tiny">작성 질문을 따라 자신의 판단을 정리. 예시는 펼쳐 읽는 참고 자료이며 답안에 입력되지 않습니다.</p>
+      {field("theoryCommon")}{field("theoryTension")}{field("theoryPriority")}
+    </section>
+    <section className="good-city-definition">
+      <span className="kicker">나의 기준</span><h2>비교한 내용을 바탕으로, 내가 생각하는 좋은 도시는?</h2>
+      <p className="tiny">우선할 관점과 그 이유를 바탕으로 도시의 정의와 실제 설계에서 확인할 기준을 작성.</p>
+      {field("goodCity")}{field("goodCityReason")}{field("goodCityCriteria")}
+    </section>
+  </div>;
+}
+function GoodCityCriteria({p}:{p:CityPlan}) {
+  if(!p.goodCity.trim())return null;
+  return <details className="good-city-reminder"><summary>내가 세운 좋은 도시의 기준</summary><p>{p.goodCity}</p>{p.goodCityCriteria && <p>{p.goodCityCriteria}</p>}</details>;
 }
 function PlanEditor({
   p,
@@ -141,7 +187,7 @@ function PlanEditor({
           </button>
         ))}
       </nav>
-      {p.section === "plans" && (
+      {p.section === "research" && (
         <>
           <div className="plan-number-tabs">
             {[0, 1, 2].map((n) => (
@@ -155,41 +201,34 @@ function PlanEditor({
               </button>
             ))}
           </div>
-          <h2>무엇을 어디에, 왜 둘까요?</h2>
-          {strategyField("action", true)}
-          {strategyField("place")}
-          {strategyField("reason")}
-          <label htmlFor="planning-concept">이 전략에 적용할 교과 개념</label>
-          <select
-            id="planning-concept"
-            value={s.concept}
-            onChange={(e) => updateStrategy({ concept: e.target.value as Strategy["concept"] })}
-          >
-            <option value="">개념을 선택해요</option>
-            {Object.entries(planningConcepts).map(([key, c]) => (
-              <option key={key} value={key}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          {s.concept && (
-            <div className="concept-lens">
-              <b>{planningConcepts[s.concept].name}</b>
-              <p>{planningConcepts[s.concept].text}</p>
-            </div>
-          )}
-          <details key={"source-" + i} open={!!s.source}>
-            <summary>이 선택을 뒷받침할 연구 자료</summary>
-            <p className="tiny">
-              전략 하나 이상을 골라, 자료에서 배운 점과 그대로 적용하기 어려운 점을 적어요.
-            </p>
+          <h2>개념과 연구에서 설계의 근거 찾기</h2>
+          <div className="research-layout">
+          <section className="research-concept">
+            <h3>교과 개념</h3>
+            <label htmlFor="planning-concept">적용할 개념</label>
+            <select
+              id="planning-concept"
+              value={s.concept}
+              onChange={(e) => updateStrategy({ concept: e.target.value as Strategy["concept"] })}
+            >
+              <option value="">개념 선택</option>
+              {Object.entries(planningConcepts).map(([key, c]) => (
+                <option key={key} value={key}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {s.concept && <ConceptReading concept={s.concept}/>}
+          </section>
+          <section className="research-source" key={"source-" + i}>
+            <h3>연구 근거</h3>
             <label htmlFor="planning-source">참고할 자료</label>
             <select
               id="planning-source"
               value={s.source}
               onChange={(e) => updateStrategy({ source: e.target.value as Strategy["source"] })}
             >
-              <option value="">자료를 선택해요</option>
+              <option value="">자료 선택</option>
               {Object.entries(planningSources).map(([key, source]) => (
                 <option key={key} value={key}>
                   {source.name}
@@ -198,37 +237,30 @@ function PlanEditor({
             </select>
             {s.source && (
               <>
-                <div className="concept-lens">
-                  <b>{planningSources[s.source].name}</b>
-                  <p>{planningSources[s.source].text}</p>
-                  <p className="tiny">
-                    {planningSources[s.source].type} · 교사용 한국어 재구성 시안
-                  </p>
-                  <a
-                    href={"https://doi.org/" + planningSources[s.source].doi}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    논문 출처 확인
-                  </a>
-                </div>
+                <ResearchReading source={s.source}/>
                 {strategyField("learning")}
                 {strategyField("limit")}
               </>
             )}
-          </details>
+          </section>
+          </div>
+          <button className="plan-primary research-next" type="button" onClick={() => change({ ...p, section: "plans" })}>검토한 근거로 전략·배치 작성 →</button>
         </>
       )}
+      {p.section === "plans" && <>
+        <h2>전략 메모</h2>
+        <div className="plan-number-tabs">{[0,1,2].map(n => <button key={n} type="button" aria-pressed={n === i} onClick={() => change({...p, selectedPlan:n})}>전략 {n+1}</button>)}</div>
+        {strategyField("action", true)}
+        {strategyField("place")}
+        {strategyField("reason")}
+        <button type="button" onClick={() => change({...p,section:"research"})}>이 전략의 개념·연구 근거 검토</button>
+      </>}
       {p.section === "values" && (
         <>
           <h2>무엇을 먼저 지키고, 어떤 부담을 살필까요?</h2>
           {field("values")}
           {field("tradeoff")}
           {field("check")}
-          <div className="concept-lens">
-            도시를 운영하기 전에는 결과 대신 확인할 일을 적어요. 프로그램에 없는 수치는 만들어 쓰지
-            않아요.
-          </div>
         </>
       )}
       {p.section === "brand" && (
@@ -238,33 +270,14 @@ function PlanEditor({
           {field("keywords", true)}
           {field("mark", true)}
           {field("meaning")}
-          <div className="concept-lens">
-            <b>도시 정체성과 브랜딩</b>
-            <p>{planningConcepts.branding.text}</p>
-          </div>
-          <details>
-            <summary>브랜딩의 이론적 관점</summary>
-            <p>{planningSources.K.text}</p>
-            <a href={"https://doi.org/" + planningSources.K.doi} target="_blank" rel="noreferrer">
-              Kavaratzis(2004) 출처
-            </a>
-            <p className="tiny">자료를 읽었다면 공간 전략에서 배운 점과 한계도 적어 보세요.</p>
-          </details>
+          <details className="brand-theory"><summary>브랜드의 개념과 연구 살펴보기</summary><ConceptReading concept="branding"/><ResearchReading source="K"/></details>
         </>
       )}
       {p.section === "reflection" && (
         <>
           <h2>친구의 질문을 듣고 계획을 고쳐요.</h2>
-          <p>
-            누구를 위한 도시인지, 시설을 왜 그렇게 놓았는지, 이름과 상징에는 무슨 뜻을 담았는지
-            설명해 보세요.
-          </p>
           {field("feedback")}
           {field("revision")}
-          <div className="concept-lens">
-            바꾼 내용은 앞의 전략에서도 직접 수정해요. 보고서와 브랜드 보드에 같은 내용이
-            들어갑니다.
-          </div>
         </>
       )}
     </>
@@ -275,7 +288,7 @@ function Report({
   edit,
 }: {
   p: CityPlan;
-  edit: (section: PlanSection | "intro" | "reference", plan?: number) => void;
+  edit: (section: PlanSection | "theory" | "intro" | "reference", plan?: number) => void;
 }) {
   const sections = planReportSections(p);
   return (
@@ -287,8 +300,8 @@ function Report({
           <h2>
             {i + 1}. {section.title}
           </h2>
-          {i === 0 && <ReferencePhotoView plan={p} />}
-          {i === 2 ? (
+          {i === 1 && <ReferencePhotoView plan={p} />}
+          {i === 3 ? (
             <>
               {p.plans.map((s, n) => (
                 <section className="report-strategy" key={n}>
@@ -333,7 +346,7 @@ function Report({
                 type="button"
                 onClick={() =>
                   edit(
-                    (["reference", "intro", "plans", "values", "brand", "reflection"] as const)[i],
+                    (["theory", "reference", "intro", "plans", "values", "brand", "reflection"] as const)[i],
                   )
                 }
               >
@@ -362,6 +375,7 @@ export default function CityStudio() {
     [dirty, setDirty] = useState(false),
     [saving, setSaving] = useState(0),
     [exporting, setExporting] = useState(false),
+    [strategyCount, setStrategyCount] = useState(1),
     [message, setMessage] = useState("저장한 기록을 불러오는 중…"),
     [error, setError] = useState(false);
   const latest = useRef(envelope),
@@ -424,7 +438,7 @@ export default function CityStudio() {
         setError(true);
         setMessage(
           (e instanceof Error ? e.message : "저장하지 못했어요.") +
-            " 작성한 글은 화면에 남아 있어요. 활동 파일로도 보관할 수 있어요.",
+          " 작성한 글은 화면에 남아 있어요. 활동 파일로도 보관할 수 있어요.",
         );
         return false;
       } finally {
@@ -459,6 +473,7 @@ export default function CityStudio() {
       max={planFields[key].max}
       short={short}
       example={exampleFor(key)}
+      questions={comparisonQuestions[key]}
       onChange={(value) => change({ ...(latest.current.planning || initial), [key]: value })}
     />
   );
@@ -472,10 +487,10 @@ export default function CityStudio() {
       document.getElementById("plan-" + missing)?.focus();
       return;
     }
-    show("design");
+    change({ ...p, view: "design", section: "plans" });
   }
-  function edit(section: PlanSection | "intro" | "reference", index = 0) {
-    if (section === "intro" || section === "reference") show(section);
+  function edit(section: PlanSection | "theory" | "intro" | "reference", index = 0) {
+    if (section === "theory" || section === "intro" || section === "reference") show(section);
     else change({ ...p, view: "design", section, selectedPlan: index });
   }
   function downloadActivity() {
@@ -549,7 +564,7 @@ export default function CityStudio() {
     if (exportLock.current || !ready) return;
     const current = latest.current.planning;
     if (current.referenceImage && !current.referenceSource.trim()) {
-      change({ ...current, view: "design" });
+      change({ ...current, view: "reference" });
       setError(true);
       setMessage("참고사진의 출처를 먼저 적어 주세요.");
       setTimeout(() => {
@@ -566,7 +581,7 @@ export default function CityStudio() {
       const snapshot = structuredClone(latest.current),
         rev = revision.current;
       if (!(await save(snapshot, rev))) return;
-      const document = makePlanBoard(snapshot.planning || initial);
+      const document = snapshot.planning.view === "report" ? makePlanReport(snapshot.planning) : makePlanBoard(snapshot.planning || initial);
       let blob: Blob;
       if (kind === "svg") blob = new Blob([document.svg], { type: "image/svg+xml;charset=utf-8" });
       else {
@@ -602,7 +617,7 @@ export default function CityStudio() {
       link.href = url;
       link.download =
         (snapshot.planning?.city || "나의 도시").replace(/[\\/:*?"<>|]/g, "_") +
-        "_브랜드보드." +
+        (snapshot.planning.view === "report" ? "_계획보고서." : "_브랜드보드.") +
         kind;
       window.document.body.appendChild(link);
       link.click();
@@ -621,333 +636,111 @@ export default function CityStudio() {
       setExporting(false);
     }
   }
+  const stageViews = ["theory", "reference", "intro", "design", "report", "board"] as const;
+  const stageLabels = ["이론·나의 기준", "모델 도시", "도시 선언", "도시 설계판", "계획 보고서", "브랜드 보드"];
+  const stageIndex = stageViews.indexOf(p.view);
+  const visibleStrategies = Math.max(strategyCount, p.selectedPlan + 1, p.plans.reduce((n, s, i) => Object.values(s).some(Boolean) ? i + 1 : n, 1));
   return (
     <div className="city-plan-app">
       <header className="city-head">
-        <div>
-          <span className="city-wordmark">도시 한 장</span>
-          <p>살고 싶은 도시를 계획하고 한 장으로 소개해요.</p>
-        </div>
+        <span className="city-wordmark">
+          <span aria-hidden="true" className="wordmark-note" />도시 한 장</span>
         <div className="save-actions">
-          <span>
-            {!ready ? "불러오는 중" : saving ? "저장 중…" : dirty ? "아직 저장 전" : "저장됨"}
-          </span>
-          <button
-            type="button"
-            disabled={!ready || exporting}
-            onClick={() => void save(structuredClone(latest.current), revision.current)}
-          >
-            지금 저장
-          </button>
-          <button type="button" disabled={exporting} onClick={downloadActivity}>
-            활동 파일 저장
-          </button>
-          <button type="button" disabled={exporting} onClick={() => importInput.current?.click()}>
-            활동 파일 열기
-          </button>
-          <input
-            ref={importInput}
-            type="file"
-            accept=".json,application/json"
-            hidden
-            onChange={(event) => void pickFile(event.target.files?.[0])}
-          />
+          <span role="status">{!ready ? "불러오는 중" : saving ? "저장 중…" : dirty ? "작성 중" : "저장됨"}</span>
+          <button type="button" disabled={!ready || exporting} onClick={() => void save(structuredClone(latest.current), revision.current)}>지금 저장</button>
+          <button type="button" disabled={!ready || exporting} onClick={downloadActivity}>활동 파일 저장</button>
+          <button type="button" disabled={!ready || exporting} onClick={() => importInput.current?.click()}>활동 파일 열기</button>
+          <input ref={importInput} type="file" accept=".json,application/json" hidden onChange={(event) => void pickFile(event.target.files?.[0])} />
         </div>
-        {p.started && (
-          <nav className="city-view-tabs" aria-label="작성과 결과물">
-            {(["design", "report", "board"] as const).map((view, i) => (
-              <button
-                key={view}
-                type="button"
-                aria-pressed={p.view === view}
-                disabled={!ready || exporting}
-                onClick={() => show(view)}
-              >
-                {["도시 설계판", "계획 보고서", "브랜드 보드"][i]}
-              </button>
-            ))}
-          </nav>
-        )}
       </header>
-      <div
-        className={"city-save-message " + (error ? "save-error" : "")}
-        role={error ? "alert" : "status"}
-        aria-live="polite"
-      >
+      <nav className="city-view-tabs" aria-label="활동 순서">
+        {stageViews.map((view, i) => <button key={view} type="button" aria-label={stageLabels[i]} aria-current={p.view === view ? "step" : undefined} aria-pressed={p.view === view} disabled={!ready || exporting} onClick={() => show(view)}>
+          <span className="stage-number">{i + 1}</span>{stageLabels[i]}</button>)}
+      </nav>
+      <div className={"city-save-message " + (error ? "save-error" : "")} role={error ? "alert" : "status"} aria-live="polite">
         {message}
-        {!ready && error && (
-          <button type="button" onClick={() => location.reload()}>
-            다시 불러오기
-          </button>
-        )}
+        {!ready && error && <button type="button" onClick={() => location.reload()}>다시 불러오기</button>}
       </div>
-      {pendingImport && (
-        <section className="activity-import" role="dialog" aria-label="활동 파일 불러오기">
-          <h2>이 활동 파일로 바꿀까요?</h2>
-          <p>
-            {pendingImport.planning.city || "도시 이름 미작성"} · 전략{" "}
-            {pendingImport.planning.plans.filter((s) => s.action.trim()).length}개 작성
-          </p>
-          <p>
-            현재 작업을 남기려면 먼저 ‘활동 파일 저장’을 누르세요. 불러오면 이 브라우저의 작업이
-            파일 내용으로 바뀝니다.
-          </p>
-          <button type="button" disabled={exporting} onClick={downloadActivity}>
-            현재 내용 파일로 저장
-          </button>
-          <button
-            type="button"
-            className="plan-primary"
-            disabled={exporting}
-            onClick={() => void importActivity()}
-          >
-            파일 내용 불러오기
-          </button>
-          <button type="button" disabled={exporting} onClick={() => setPendingImport(null)}>
-            취소
-          </button>
-        </section>
-      )}
+      {pendingImport && <section className="activity-import" role="dialog" aria-label="활동 파일 불러오기">
+        <h2>이 활동 파일로 바꿀까요?</h2>
+        <p>{pendingImport.planning.city || "도시 이름 미작성"} · 현재 내용은 파일로 보관할 수 있습니다.</p>
+        <button type="button" disabled={exporting} onClick={downloadActivity}>현재 내용 파일로 저장</button>
+        <button type="button" className="plan-primary" disabled={exporting} onClick={() => void importActivity()}>파일 내용 불러오기</button>
+        <button type="button" disabled={exporting} onClick={() => setPendingImport(null)}>취소</button>
+      </section>}
       <main>
         <fieldset className="city-work" disabled={!ready || exporting}>
-          {p.view === "reference" && (
-            <div className="city-intro">
-              <section className="intro-copy">
-                <p className="kicker">1 · 모델 도시 살펴보기</p>
-                <h1>
-                  어떤 도시에서
-                  <br />
-                  배워 볼까요?
-                </h1>
-                <p>
-                  배치나 생활 모습이 궁금한 실제 도시를 골라 보세요. 위성사진과 자료를 살펴보고, 내
-                  도시에 가져올 점과 바꿔 볼 점을 찾아요.
-                </p>
-                <ol>
-                  <li>
-                    <b>모델 도시</b>관찰하고 배울 점 찾기
-                  </li>
-                  <li>
-                    <b>내 도시 선언</b>누구를 위한 도시인지 정하기
-                  </li>
-                  <li>
-                    <b>설계와 표현</b>배치하고 글과 보드로 소개하기
-                  </li>
-                </ol>
-                <div className="concept-lens">
-                  <b>살기 좋은 도시를 보는 관점</b>
-                  <p>
-                    시설이 많아 보인다는 이유만으로 모두에게 살기 좋다고 판단하기는 어려워요. 주민의
-                    생활과 실제 이용 조건도 살펴보세요.
-                  </p>
-                </div>
-              </section>
-              <section className="plan-panel">
-                <h2>나의 모델 도시</h2>
-                {field("modelCity", true)}
-                {field("modelReason")}
-                <ReferencePhoto plan={p} onChange={change} disabled={!ready || exporting} />
-                {field("modelLearn")}
-                {field("modelAdapt")}
-                <div className="plan-actions">
-                  <button
-                    type="button"
-                    className="plan-primary"
-                    onClick={() => {
-                      if (!p.modelCity.trim()) {
-                        setError(true);
-                        setMessage("참고할 모델 도시의 이름을 적어 주세요.");
-                        document.getElementById("plan-modelCity")?.focus();
-                        return;
-                      }
-                      show("intro");
-                    }}
-                  >
-                    이 도시를 참고해 나의 도시 선언 쓰기 →
-                  </button>
-                  <button type="button" onClick={() => show("design")}>
-                    설계판 먼저 살펴보기
-                  </button>
-                </div>
-              </section>
+          <div className="page-heading">
+            <div>
+              <span className="kicker">MY CITY · {String(stageIndex + 1).padStart(2, "0")}</span>
+              <h1>{["도시를 계획하는 첫 장", "모델 도시에서 배울 점", "내 도시의 약속", p.city || "생각을 공간으로", "나의 도시 계획 보고서", "나의 도시, 한 장으로"][stageIndex]}</h1>
             </div>
-          )}
-          {p.view === "intro" && (
-            <div className="city-intro">
-              <section className="intro-copy">
-                <p className="kicker">2 · 나의 도시 선언</p>
-                <button type="button" onClick={() => show("reference")}>
-                  모델 도시 다시 보기
-                </button>
-                <h1>
-                  어떤 도시에서
-                  <br />
-                  살고 싶나요?
-                </h1>
-                <p>
-                  누가 살 도시인지, 무엇이 편해지면 좋을지 적어 보세요. 그 생각을 시설 배치와 도시
-                  이름으로 구체화해 봐요.
-                </p>
-                <ol>
-                  <li>
-                    <b>도시 선언</b>누구를 위한 도시인지 정하기
-                  </li>
-                  <li>
-                    <b>도시 설계판</b>시설을 놓고 선택한 이유 쓰기
-                  </li>
-                  <li>
-                    <b>보고서와 보드</b>같은 계획을 글과 이미지로 보기
-                  </li>
-                </ol>
-                <div className="concept-lens">
-                  <b>거주 적합성</b>
-                  <p>{planningConcepts.livability.text}</p>
-                </div>
-              </section>
-              <section className="plan-panel">
-                <p className="kicker">나의 첫 도시 선언</p>
-                <div className="declaration-preview">
-                  {cityDeclaration(p) ||
-                    "아래 네 가지를 적으면 도시의 첫 약속이 한 문장으로 모여요."}
-                </div>
-                {(["city", "audience", "problem", "promise"] as const).map((key) =>
-                  field(key, true),
-                )}
-                <div className="plan-actions">
-                  <button className="plan-primary" type="button" onClick={begin}>
-                    이 약속으로 설계 시작 →
-                  </button>
-                  <button type="button" onClick={() => show("design")}>
-                    빈 설계판 먼저 보기
-                  </button>
-                </div>
-              </section>
+            {p.view === "theory" && <button className="plan-primary" type="button" onClick={()=>{
+              const missing=(["goodCity","goodCityReason","goodCityCriteria"] as const).find(key=>!p[key].trim());
+              if(missing){setError(true);setMessage(planFields[missing].label+"을 작성해 주세요.");document.getElementById("plan-"+missing)?.focus();return;}
+              show("reference");
+            }}>이 기준으로 모델 도시 살펴보기 →</button>}
+            {p.view === "reference" && <button className="plan-primary" type="button" onClick={() => { if (!p.modelCity.trim()) { setError(true); setMessage("참고할 모델 도시의 이름을 적어 주세요."); document.getElementById("plan-modelCity")?.focus(); return; } show("intro"); }}>도시 선언 쓰기 →</button>}
+            {p.view === "intro" && <button className="plan-primary" type="button" onClick={begin}>이 약속으로 설계 시작 →</button>}
+            {p.view === "design" && p.section !== "research" && <button className="plan-primary" type="button" onClick={() => show("report")}>보고서로 모으기 →</button>}
+            {(p.view === "report" || p.view === "board") && <div className="download-buttons">
+              <button type="button" className="plan-primary" onClick={() => void download("png")}>{exporting ? "이미지 만드는 중…" : "PNG 이미지 저장"}</button>
+              <button type="button" onClick={() => void download("svg")}>SVG 원본 저장</button>
+            </div>}
+          </div>
+          {p.view === "theory" && <TheoryStart p={p} change={change} field={field} />}
+          {(["reference","intro","design"] as string[]).includes(p.view) && <GoodCityCriteria p={p} />}
+          {p.view === "reference" && <div className="reference-workbench">
+            <section className="photo-paper">
+              <ReferencePhoto plan={p} onChange={change} disabled={!ready || exporting} />
+            </section>
+            <div className="note-stack">
+              <section className="sticky-note note-lilac">{field("modelCity", true)}{field("modelReason")}</section>
+              <section className="sticky-note note-blue">{field("modelLearn")}</section>
+              <section className="sticky-note note-green">{field("modelAdapt")}</section>
             </div>
-          )}
-          {p.view === "design" && (
-            <>
-              <div className="design-top">
-                <p>
-                  {done}/{checks.length} 부분 작성 · 점수가 아닌 작성 상태예요
-                </p>
-                <button type="button" onClick={() => show("intro")}>
-                  도시 선언 고치기
-                </button>
-              </div>
-              <section className="plan-overview">
-                <p className="kicker">우리 도시의 출발점</p>
-                {p.modelCity && (
-                  <p className="tiny">
-                    참고한 모델 도시: {p.modelCity}{" "}
-                    <button type="button" onClick={() => show("reference")}>
-                      자료와 사진 보기
-                    </button>
-                  </p>
-                )}
-                <h1>{p.city || "도시 이름을 먼저 정해요"}</h1>
-                <div className="declaration-chain">
-                  {[
-                    ["누구의", p.audience, "주민을 작성해요"],
-                    ["어떤 불편을", p.problem, "불편을 작성해요"],
-                    ["어떤 생활로", p.promise, "바라는 생활을 작성해요"],
-                  ].map(([label, value, empty]) => (
-                    <div key={label}>
-                      <small>{label}</small>
-                      <p>{value || empty}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-              <div className="design-columns">
-                <section className="plan-panel">
-                  <h2>내가 그리는 공간 구상</h2>
+          </div>}
+          {p.view === "intro" && <div className="declaration-workbench">
+            <section className="sticky-note note-white">{field("city", true)}</section>
+            <section className="sticky-note note-green">{field("audience", true)}</section>
+            <section className="sticky-note note-pink">{field("problem")}</section>
+            <section className="sticky-note note-blue">{field("promise")}</section>
+            <section className="declaration-preview">
+              <span className="kicker">도시 선언</span>
+              <p>{cityDeclaration(p) || "주민과 바라는 생활을 적어주세요."}</p>
+            </section>
+          </div>}
+          {p.view === "design" && <>
+            <div className={"design-columns" + (p.section === "research" ? " research-first" : "")}>
+              {p.section !== "research" && <div className="design-left">
+                <section className="map-paper">
+                  <div className="paper-heading">
+                    <h2>도시 구상도</h2>
+                    <span>5 × 4</span>
+                  </div>
                   <CityMap plan={p} onChange={change} disabled={!ready || exporting} />
-                  <ReferencePhoto plan={p} onChange={change} disabled={!ready || exporting} />
-                  <h2 className="strategies-heading">도시를 만드는 전략 3개</h2>
-                  {p.plans.map((strategy, i) => (
-                    <button
-                      type="button"
-                      className="strategy-summary"
-                      aria-pressed={p.section === "plans" && p.selectedPlan === i}
-                      key={i}
-                      onClick={() => change({ ...p, section: "plans", selectedPlan: i })}
-                    >
-                      <b>
-                        {i + 1}. {strategy.action || "아직 정하지 않은 공간 전략"}
-                      </b>
-                      <small>
-                        {strategy.concept
-                          ? planningConcepts[strategy.concept].name
-                          : "개념 선택 전"}{" "}
-                        · {strategy.reason ? "이유 작성됨" : "배치와 이유를 채워요"}
-                      </small>
-                    </button>
-                  ))}
-                  <div className="plan-checks">
-                    {checks.map((c) => (
-                      <span key={c.name} data-done={c.done}>
-                        {c.done ? "✓" : "○"} {c.name}
-                      </span>
-                    ))}
-                  </div>
                 </section>
-                <section className="plan-panel plan-editor">
-                  <PlanEditor p={p} change={change} field={field} />
-                  <div className="plan-actions">
-                    <button type="button" onClick={() => show("report")}>
-                      보고서로 읽기
-                    </button>
-                    <button type="button" onClick={() => show("board")}>
-                      보드에서 확인
-                    </button>
-                  </div>
-                </section>
-              </div>
-            </>
-          )}
-          {p.view === "report" && (
-            <>
-              <div className="output-actions">
-                <p>지금까지 쓴 글과 구상도를 모았어요. 읽어 보고 빠진 부분을 고쳐 보세요.</p>
-                <button type="button" onClick={() => show("board")}>
-                  브랜드 보드로 보기 →
-                </button>
-              </div>
-              <Report p={p} edit={edit} />
-            </>
-          )}
-          {p.view === "board" && (
-            <>
-              <div className="output-actions">
-                <p>보고서의 도시 계획을 한 장으로 소개해요.</p>
-                <div>
-                  <button
-                    type="button"
-                    className="plan-primary"
-                    onClick={() => void download("png")}
-                  >
-                    {exporting ? "이미지 만드는 중…" : "PNG 이미지 저장"}
-                  </button>
-                  <button type="button" onClick={() => void download("svg")}>
-                    SVG 원본 저장
-                  </button>
-                  <button type="button" onClick={() => show("report")}>
-                    원문 보고서
-                  </button>
+                <div className="strategy-notes" aria-label="전략 메모">{p.plans.slice(0, visibleStrategies).map((strategy, i) => <button type="button" className={"strategy-summary note-" + ["green", "pink", "blue"][i]} aria-pressed={p.section === "plans" && p.selectedPlan === i} key={i} onClick={() => change({ ...p, section: "plans", selectedPlan: i })}>
+                  <span>전략 0{i + 1}</span>
+                  <b>{strategy.action || "새 전략 메모"}</b>
+                </button>)}
+                  {visibleStrategies < 3 && <button type="button" className="add-strategy" onClick={() => { setStrategyCount(visibleStrategies + 1); change({ ...p, section: "plans", selectedPlan: visibleStrategies }); }}>＋ 전략 메모 붙이기</button>}
                 </div>
-              </div>
-              <div
-                className="plan-board-image"
-                aria-label="브랜드 보드 미리보기"
-                dangerouslySetInnerHTML={board ? { __html: board.svg } : undefined}
-              />
-            </>
-          )}
+              </div>}
+              <section className={"plan-editor editor-" + p.section}>
+                <PlanEditor p={p} change={change} field={field} />
+              </section>
+            </div>
+            <details className="completion-details">
+              <summary>작성 확인 · {done}/{checks.length}</summary>
+              <div className="plan-checks">{checks.map(c => <span key={c.name} data-done={c.done}>{c.done ? "✓" : "○"} {c.name}</span>)}</div>
+            </details>
+          </>}
+          {p.view === "report" && <Report p={p} edit={edit} />}
+          {p.view === "board" && <div className="plan-board-image" aria-label="브랜드 보드 미리보기" dangerouslySetInnerHTML={board ? { __html: board.svg } : undefined} />}
         </fieldset>
       </main>
-      <footer className="city-footer">
-        작성 내용은 이 브라우저에 저장됩니다. 다른 기기에서 이어 쓰려면 활동 파일을 저장해 옮기세요.
-      </footer>
+      <footer className="city-footer">이 브라우저에 자동 저장 · 다른 기기로 옮길 때는 활동 파일 저장</footer>
     </div>
   );
 }

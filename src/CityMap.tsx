@@ -24,7 +24,7 @@ export default function CityMap({
 }) {
   const [tool, setTool] = useState<Tool>(""),
     [strategy, setStrategy] = useState<number | null>(null),
-    [notice, setNotice] = useState("요소를 고른 뒤 큰 칸에, 도로는 칸 사이 통로에 놓아요.");
+    [notice, setNotice] = useState("시설은 큰 칸, 도로는 칸 사이.");
   const roads = new Set(plan.roads);
   if (readOnly)
     return (
@@ -49,7 +49,7 @@ export default function CityMap({
       return;
     }
     if (tool === "road") {
-      setNotice("도로는 큰 칸 사이의 가느다란 통로를 눌러 놓아요.");
+      setNotice("도로는 칸 사이 통로를 눌러 놓아요.");
       return;
     }
     const cells = plan.cells.map((c, i) =>
@@ -91,7 +91,7 @@ export default function CityMap({
             }}
             disabled={disabled}
           >
-            {name}
+            <span className={"tool-dot tool-" + key} aria-hidden="true" />{name}
           </button>
         ))}
         <button
@@ -99,7 +99,7 @@ export default function CityMap({
           aria-pressed={tool === "road"}
           onClick={() => {
             setTool("road");
-            setNotice("칸 사이 통로를 눌러 도로를 연결하거나 해제해요. 큰 칸은 시설용입니다.");
+            setNotice("칸 사이 통로를 눌러 도로를 연결하거나 지워요.");
           }}
           disabled={disabled}
         >
@@ -178,6 +178,7 @@ export default function CityMap({
             disabled={disabled}
             onClick={() => place(i)}
           >
+            <span className="cell-coordinate" aria-hidden="true">{String.fromCharCode(65 + i % COLS)}{Math.floor(i / COLS) + 1}</span>
             <span>{cell.type ? facilityNames[cell.type] : "+"}</span>
             {cell.type && cell.strategy !== null && <small>전략 {cell.strategy + 1}</small>}
           </button>
@@ -187,8 +188,7 @@ export default function CityMap({
         {notice}
       </p>
       <p className="tiny">
-        시설 {plan.cells.filter((c) => c.type).length}/20칸 · 도로 {plan.roads.length}구간 · 도로는
-        시설 칸을 차지하지 않아요.
+        시설 {plan.cells.filter((c) => c.type).length}/20칸 · 도로 {plan.roads.length}구간
       </p>
     </div>
   );

@@ -21,6 +21,13 @@ page.on("request", (r) => {
 try {
   await page.goto(base);
   await page.getByText("저장한 활동을 불러왔어요.", { exact: true }).waitFor();
+  await page.getByRole("heading",{name:"도시를 계획하는 첫 장",exact:true}).waitFor();
+  for(const [key,value] of Object.entries({theoryCommon:"주민의 이용 조건",theoryTension:"중심부와 외곽의 차이",theoryPriority:"차 없는 주민을 우선",goodCity:"누구나 일상 시설을 이용할 수 있는 도시",goodCityReason:"거주 적합성과 접근성의 관점을 참고했다.",goodCityCriteria:"주거와 시설의 연결, 주민의 이용 조건"}))await page.locator(`[data-field="${key}"]`).fill(value);
+  await page.getByRole("checkbox",{name:"접근성",exact:true}).check();
+  await page.getByRole("checkbox",{name:"공간 정의",exact:true}).check();
+  await page.getByRole("checkbox",{name:"Moreno 외(2021) · 15분 도시",exact:true}).check();
+  await page.getByRole("checkbox",{name:"Arnstein(1969) · 시민 참여",exact:true}).check();
+  await page.getByRole("button",{name:"이 기준으로 모델 도시 살펴보기 →",exact:true}).click();
   assert.equal(await page.locator('[data-field="modelCity"]').inputValue(), "");
   assert.equal(await page.title(), "도시 한 장");
   // Examples are optional reading, never values or report content.
@@ -40,7 +47,7 @@ try {
   await page.locator("#reference-title").fill("검증용 참고 도시 사진");
   await page.locator("#reference-source").fill("검증을 위해 직접 만든 화면 이미지");
   await page
-    .getByRole("button", { name: "이 도시를 참고해 나의 도시 선언 쓰기", exact: false })
+    .getByRole("button", { name: "도시 선언 쓰기", exact: false })
     .click();
   for (const [key, value] of Object.entries({
     city: "채움시",
@@ -50,6 +57,7 @@ try {
   }))
     await page.locator(`[data-field="${key}"]`).fill(value);
   await page.getByRole("button", { name: "이 약속으로 설계 시작" }).click();
+  await page.getByRole("heading", {name:"도시 구상도",exact:true}).waitFor();
   assert.equal(await page.locator(".facility-cell").count(), 20);
   assert.equal(await page.locator(".road-edge").count(), 49);
   await page.getByRole("button", { name: "주거", exact: true }).click();
@@ -71,6 +79,7 @@ try {
     before,
   );
   for (let i = 0; i < 3; i++) {
+    if (await page.locator(".strategy-summary").count() <= i) await page.getByRole("button", { name: "＋ 전략 메모 붙이기", exact: true }).click();
     await page.locator(".strategy-summary").nth(i).click();
     for (const [key, value] of Object.entries({
       action: ["생활시설을 나누어 둔다", "공원을 주거지에 둔다", "교류광장을 마련한다"][i],
@@ -78,10 +87,12 @@ try {
       reason: "필요한 시설을 주민 가까이에 두고 싶기 때문이다.",
     }))
       await page.locator(`[data-field="plans.${i}.${key}"]`).fill(value);
+    await page.getByRole("button",{name:"이 전략의 개념·연구 근거 검토",exact:true}).click();
     await page.locator("#planning-concept").selectOption(["access", "justice", "branding"][i]);
+    await page.getByRole("button",{name:"검토한 근거로 전략·배치 작성 →",exact:true}).click();
   }
   await page.locator(".strategy-summary").first().click();
-  await page.getByText("이 선택을 뒷받침할 연구 자료", { exact: true }).click();
+  await page.getByRole("button",{name:"이 전략의 개념·연구 근거 검토",exact:true}).click();
   await page.locator("#planning-source").selectOption("M");
   await page
     .locator('[data-field="plans.0.learning"]')
@@ -131,6 +142,19 @@ try {
     await page.locator('.plan-document [data-road="h:1:0"][data-present="true"]').count(),
     1,
   );
+  // Full report images contain the same research, photo and geometry as the readable report.
+  for (const kind of ["png", "svg"]) {
+    const pending = page.waitForEvent("download");
+    await page.getByRole("button", { name: kind === "png" ? "PNG 이미지 저장" : "SVG 원본 저장", exact: true }).click();
+    const download = await pending;
+    assert.ok(download.suggestedFilename().includes("계획보고서"));
+    await download.saveAs(out + "/report." + kind);
+    assert.equal(await download.failure(), null);
+  }
+  const reportSvg = await fs.readFile(out + "/report.svg", "utf8");
+  assert.ok(reportSvg.includes("근접성을 시설 위치를 정할 때 참고했다."));
+  assert.ok(reportSvg.includes('<image href="data:image/jpeg;base64,'));
+  assert.ok(reportSvg.includes('data-road="h:1:0" data-present="true"'));
   await page.getByRole("button", { name: "브랜드 보드", exact: true }).click();
   await page.locator(".plan-board-image svg").waitFor();
   for (const kind of ["png", "svg", "json"]) {
