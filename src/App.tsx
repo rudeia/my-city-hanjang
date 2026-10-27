@@ -571,7 +571,7 @@ export default function CityStudio() {
       setExporting(false);
     }
   }
-  async function download(kind: "png" | "svg") {
+  async function download(kind: "png" | "svg" | "pdf") {
     if (exportLock.current || !ready) return;
     const current = latest.current.planning;
     if (current.referenceImage && !current.referenceSource.trim()) {
@@ -613,7 +613,10 @@ export default function CityStudio() {
         const context = canvas.getContext("2d");
         if (!context) throw Error("이 기기에서 이미지 저장을 시작하지 못했어요.");
         context.drawImage(image, 0, 0);
-        blob = await new Promise<Blob>((resolve, reject) =>
+        if(kind === "pdf") {
+          const {canvasPDF}=await import("./pdf-export");
+          blob=canvasPDF(canvas);
+        } else blob = await new Promise<Blob>((resolve, reject) =>
           canvas.toBlob(
             (value) =>
               value
@@ -635,7 +638,7 @@ export default function CityStudio() {
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10000);
       setError(false);
-      setMessage(`${kind.toUpperCase()} 이미지를 저장했어요. 지금 보고서에 담긴 내용과 같아요.`);
+      setMessage(`${kind.toUpperCase()} 파일을 저장했습니다. 현재 작성 내용과 배치가 반영되었습니다.`);
     } catch (e) {
       setError(true);
       setMessage(
@@ -701,6 +704,7 @@ export default function CityStudio() {
             {p.view === "design" && p.section !== "research" && <button className="plan-primary" type="button" onClick={() => show("report")}>보고서로 모으기 →</button>}
             {(p.view === "report" || p.view === "board") && <div className="download-buttons">
               <button type="button" className="plan-primary" onClick={() => void download("png")}>{exporting ? "이미지 만드는 중…" : "PNG 이미지 저장"}</button>
+              <button type="button" onClick={() => void download("pdf")}>PDF 저장</button>
               <button type="button" onClick={() => void download("svg")}>SVG 원본 저장</button>
             </div>}
           </div>
