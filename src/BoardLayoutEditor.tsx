@@ -1,13 +1,33 @@
+import {stickerKinds,stickerColors,stickerSVG,type BoardSticker} from "./stickers";
 import {Fragment,useRef,useState,type PointerEvent as ReactPointerEvent,type KeyboardEvent} from 'react';
 import type {CityPlan,BoardBlockId,BoardLayout} from './model';
 import type {BoardDocument,BoardBlock} from './svg-text';
 
+type BoardSnapshot={layout:BoardLayout;stickers:BoardSticker[]};
 type Drag={id:string;pointerId:number;clientX:number;clientY:number;x:number;y:number;renderScale:number;blockScale:number;mode:"move"|"resize";before:BoardLayout;moved:boolean};
 export default function BoardLayoutEditor({plan,document,onChange,disabled=false}:{plan:CityPlan;document:BoardDocument;onChange:(p:CityPlan)=>void;disabled?:boolean}){
- const [editing,setEditing]=useState(true),[snap,setSnap]=useState(true),[selected,setSelected]=useState<string|null>(null),[history,setHistory]=useState<BoardLayout[]>([]),[dragging,setDragging]=useState(false);
+ const [editing,setEditing]=useState(true),[snap,setSnap]=useState(true),[selected,setSelected]=useState<string|null>(null),[history,setHistory]=useState<BoardSnapshot[]>([]),[dragging,setDragging]=useState(false);
  const canvas=useRef<HTMLDivElement>(null),drag=useRef<Drag|null>(null),latest=useRef(plan);latest.current=plan;
  const blocks=document.blocks??[],active=blocks.find(b=>b.id===selected);
- const remember=(layout:BoardLayout)=>setHistory(h=>[...h.slice(-19),structuredClone(layout)]);
+ const remember=(layout:BoardLayout)=>setHistory(h=>[...h.slice(-19),structuredClone({layout,stickers:latest.current.boardStickers??[]})]);
+ const activeSticker=plan.boardStickers?.find(s=>s.id===selected);
+ function addSticker(kind:BoardSticker["kind"]){
+  const current=latest.current;if(disabled||(current.boardStickers?.length??0)>=40)return;
+  remember(current.boardLayout??{});
+  const id=`sticker-${crypto.randomUUID()}`,box=canvas.current?.getBoundingClientRect();
+  const top=box?Math.max(200,Math.min(10320,document.height-160,(window.innerHeight*.55-box.top)*document.width/box.width)):320;
+  onChange({...current,boardStickers:[...(current.boardStickers??[]),{id,kind,color:"green",rotation:0}],boardLayout:{...current.boardLayout,[id]:{x:document.width/2-180,y:top-320,scale:1}}});
+  setSelected(id);
+ }
+ function updateSticker(update:Partial<Pick<BoardSticker,"color"|"rotation">>){
+  if(!activeSticker||disabled)return;const current=latest.current;remember(current.boardLayout??{});
+  onChange({...current,boardStickers:current.boardStickers.map(s=>s.id===activeSticker.id?{...s,...update}:s)});
+ }
+ function removeSticker(){
+  if(!activeSticker||disabled)return;const current=latest.current;remember(current.boardLayout??{});
+  const layout={...current.boardLayout};delete layout[activeSticker.id as BoardBlockId];
+  onChange({...current,boardStickers:current.boardStickers.filter(s=>s.id!==activeSticker.id),boardLayout:layout});setSelected(null);
+ }
  function move(block:BoardBlock,x:number,y:number){
   if(disabled)return;
   const nextX=Math.max(16,Math.min(document.width-block.width-16,x)),nextY=Math.max(16,Math.max(block.baseY-10000,Math.min(block.baseY+10000,y)));
@@ -50,12 +70,17 @@ export default function BoardLayoutEditor({plan,document,onChange,disabled=false
  return <section className="board-layout-editor" aria-label="브랜드 보드 배치 작업판">
   <div className="board-layout-toolbar">
    <div className="board-layout-mode"><button type="button" aria-pressed={editing} onClick={()=>setEditing(true)}>배치 편집</button><button type="button" aria-pressed={!editing} onClick={()=>{setEditing(false);setSelected(null);}}>완성 모습</button></div>
-   <button type="button" disabled={disabled||!history.length} onClick={()=>{const previous=history.at(-1);if(previous){onChange({...latest.current,boardLayout:previous});setHistory(h=>h.slice(0,-1));}}}>배치 되돌리기</button>
+   <button type="button" disabled={disabled||!history.length} onClick={()=>{const previous=history.at(-1);if(previous){onChange({...latest.current,boardLayout:previous.layout,boardStickers:previous.stickers});setHistory(h=>h.slice(0,-1));}}}>배치 되돌리기</button>
    <button type="button" disabled={disabled||!Object.keys(plan.boardLayout??{}).length} onClick={()=>{remember(plan.boardLayout??{});onChange({...latest.current,boardLayout:{}});}}>기본 배치</button>
    {editing&&<label className="board-snap"><input type="checkbox" checked={snap} onChange={e=>setSnap(e.target.checked)}/>격자 맞춤</label>}
   </div>
+  {editing&&<details className="board-sticker-palette"><summary>＋ 스티커 붙이기</summary>
+   <div className="sticker-groups">{["화살표","도형","기호","도시 모형"].map(group=><fieldset key={group}><legend>{group}</legend><div>{Object.entries(stickerKinds).filter(([,v])=>v.group===group).map(([kind,item])=><button type="button" key={kind} aria-label={item.label+" 스티커 추가"} disabled={disabled||(plan.boardStickers?.length??0)>=40} onClick={()=>addSticker(kind as BoardSticker["kind"])}><svg viewBox="0 0 120 120" aria-hidden="true" dangerouslySetInnerHTML={{__html:stickerSVG({kind:kind as BoardSticker["kind"],color:"green",rotation:0})}}/><span>{item.label}</span></button>)}</div></fieldset>)}</div>
+   <p className="tiny">회전으로 화살표 방향 변경 · 최대 40개</p>
+  </details>}
   {editing&&<div className="board-layout-assist"><p>요소를 끌어 이동 · 모서리로 크기 조절 · 방향키로 미세 이동</p><label>이동할 요소<select aria-label="이동할 보드 요소" value={selected??''} onChange={e=>setSelected(e.target.value||null)}><option value="">요소 선택</option>{blocks.map(b=><option key={b.id} value={b.id}>{b.label}</option>)}</select></label>{active&&<span className="board-position" aria-live={dragging?'off':'polite'}>{active.label} · 가로 {Math.round(active.x)} / 세로 {Math.round(active.y)}</span>}</div>}
   {editing&&<div className="board-size-controls">{active?<><span>{active.label}</span><button type="button" aria-label="선택 요소 작게" onClick={()=>{remember(plan.boardLayout??{});resize(active,active.scale-.1);}}>−</button><label>요소 크기<input type="range" aria-label="선택 요소 크기" min="30" max={Math.round(Math.min(2,(document.width-32)/active.baseWidth)*100)} step="1" value={Math.round(active.scale*100)} onPointerDown={()=>remember(plan.boardLayout??{})} onKeyDown={e=>{if(e.key.startsWith('Arrow'))remember(plan.boardLayout??{});}} onChange={e=>resize(active,Number(e.target.value)/100)}/></label><output>{Math.round(active.scale*100)}%</output><button type="button" aria-label="선택 요소 크게" onClick={()=>{remember(plan.boardLayout??{});resize(active,active.scale+.1);}}>＋</button><span className="tiny">비율 유지</span></>:<span>요소를 선택하면 크기를 조절할 수 있습니다.</span>}</div>}
+  {editing&&activeSticker&&<div className="board-sticker-controls" aria-label="선택한 스티커 꾸미기"><label>스티커 색<select aria-label="스티커 색" value={activeSticker.color} onChange={e=>updateSticker({color:e.target.value as BoardSticker["color"]})}>{Object.keys(stickerColors).map((color,i)=><option value={color} key={color}>{["먹색","초록","파랑","분홍","보라"][i]}</option>)}</select></label><button type="button" onClick={()=>updateSticker({rotation:((activeSticker.rotation+90)%360) as BoardSticker["rotation"]})}>90° 회전</button><button type="button" onClick={removeSticker}>선택 스티커 삭제</button></div>}
   <div className={'board-layout-canvas'+(editing?' is-editing':'')+(dragging?' is-dragging':'')} ref={canvas}>
    <div className="plan-board-image" aria-label="브랜드 보드 미리보기" dangerouslySetInnerHTML={{__html:document.svg}}/>
    {editing&&blocks.map(b=><Fragment key={b.id}><button type="button" className={'board-layout-handle'+(selected===b.id?' is-selected':'')} aria-label={b.label+' 위치 이동'} aria-pressed={selected===b.id} disabled={disabled} style={{left:b.x/document.width*100+'%',top:b.y/document.height*100+'%',width:b.width/document.width*100+'%',height:b.height/document.height*100+'%'}} onClick={()=>setSelected(b.id)} onPointerDown={e=>start(e,b)} onPointerMove={moving} onPointerUp={finish} onPointerCancel={finish} onLostPointerCapture={finish} onKeyDown={e=>nudge(e,b)}><span>{b.label}</span></button><button type="button" className="board-resize-handle" aria-label={b.label+' 크기 조절'} disabled={disabled} style={{left:(b.x+b.width)/document.width*100+'%',top:(b.y+b.height)/document.height*100+'%'}} onPointerDown={e=>start(e,b,'resize')} onPointerMove={moving} onPointerUp={finish} onPointerCancel={finish} onLostPointerCapture={finish} onKeyDown={e=>resizeKey(e,b)} onClick={()=>setSelected(b.id)}>↘</button></Fragment>)}

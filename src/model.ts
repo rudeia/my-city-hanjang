@@ -1,3 +1,4 @@
+import {stickerKinds,stickerColors,type BoardSticker} from "./stickers";
 export const COLS = 5,
   ROWS = 4;
 export const facilityNames = {
@@ -24,6 +25,7 @@ export const planFields = {
   audience: { label: "먼저 생각할 주민", max: 200 },
   problem: { label: "줄이거나 예방하고 싶은 불편", max: 300 },
   promise: { label: "이 도시에서 누리고 싶은 생활", max: 300 },
+  declaration: { label: "도시 선언문", max: 1000 },
   values: { label: "가장 중요하게 생각한 가치와 이유", max: 700 },
   tradeoff: { label: "계획의 부담·다른 방법과 비교한 이유", max: 700 },
   check: { label: "도시짓기에서 확인할 것", max: 700 },
@@ -156,14 +158,15 @@ export type Strategy = Record<StrategyField, string> & {
   concept: "" | keyof typeof planningConcepts;
   source: "" | keyof typeof planningSources;
 };
-export type PlanView = "theory" | "reference" | "intro" | "design" | "report" | "board";
+export type PlanView = "theory" | "criteria" | "reference" | "intro" | "design" | "report" | "board";
 export type PlanSection = "research" | "plans" | "values" | "brand" | "reflection";
 export const boardBlockIds = ["identity","symbol","definition","criteria","declaration","map","strategy-0","strategy-1","strategy-2","meaning","tradeoff","check","reference","reference-photo","sources"] as const;
-export type BoardBlockId = typeof boardBlockIds[number];
+export type BoardBlockId = typeof boardBlockIds[number] | `sticker-${string}`;
 export type BoardLayout = Partial<Record<BoardBlockId,{x:number;y:number;scale?:number}>>;
 export type CityPlan = Record<PlanField, string> & {
   version: 1;
   boardLayout: BoardLayout;
+  boardStickers: BoardSticker[];
   started: boolean;
   view: PlanView;
   section: PlanSection;
@@ -183,6 +186,7 @@ export function newCityPlan(): CityPlan {
     >),
     version: 1,
     boardLayout: {},
+    boardStickers: [],
     started: false,
     view: "theory",
     theoryConcepts: [],
@@ -261,7 +265,7 @@ export function cleanCityPlan(value: unknown): CityPlan {
   if (
     v.version !== 1 ||
     typeof v.started !== "boolean" ||
-    !["theory", "reference", "intro", "design", "report", "board"].includes(String(v.view)) ||
+    !["theory", "criteria", "reference", "intro", "design", "report", "board"].includes(String(v.view)) ||
     !["research", "plans", "values", "brand", "reflection"].includes(String(v.section)) ||
     !Number.isInteger(v.selectedPlan) ||
     Number(v.selectedPlan) < 0 ||
@@ -339,10 +343,19 @@ export function cleanCityPlan(value: unknown): CityPlan {
   )
     throw Error("참고사진을 확인해 주세요. JPG·PNG·WebP 파일을 앱에서 다시 선택할 수 있어요.");
   out.referenceImage = image;
+  const stickers=v.boardStickers??[];
+  if(!Array.isArray(stickers)||stickers.length>40)throw Error("스티커는 40개까지 추가할 수 있습니다.");
+  const stickerIds=new Set<string>();
+  out.boardStickers=stickers.map(raw=>{
+    if(!raw||typeof raw!=="object"||Array.isArray(raw))throw Error("스티커 형식을 확인해 주세요.");
+    const q=raw as Record<string,unknown>;
+    if(typeof q.id!=="string"||!/^sticker-[a-zA-Z0-9-]{1,50}$/.test(q.id)||stickerIds.has(q.id)||typeof q.kind!=="string"||!Object.hasOwn(stickerKinds,q.kind)||typeof q.color!=="string"||!Object.hasOwn(stickerColors,q.color)||![0,90,180,270].includes(q.rotation as number))throw Error("스티커 형식을 확인해 주세요.");
+    stickerIds.add(q.id);return {id:q.id,kind:q.kind,color:q.color,rotation:q.rotation} as BoardSticker;
+  });
   const layout=v.boardLayout===undefined?{}:v.boardLayout;
-  if(!layout||typeof layout!=="object"||Array.isArray(layout)||Object.keys(layout).length>boardBlockIds.length)throw Error("보드 배치를 확인해 주세요.");
+  if(!layout||typeof layout!=="object"||Array.isArray(layout)||Object.keys(layout).length>boardBlockIds.length+40)throw Error("보드 배치를 확인해 주세요.");
   for(const [id,position] of Object.entries(layout)) {
-    if(!boardBlockIds.includes(id as BoardBlockId)||!position||typeof position!=="object"||Array.isArray(position))throw Error("보드 배치를 확인해 주세요.");
+    if(!(boardBlockIds.some(key=>key===id)||stickerIds.has(id))||!position||typeof position!=="object"||Array.isArray(position))throw Error("보드 배치를 확인해 주세요.");
     const q=position as Record<string,unknown>;
     if(typeof q.x!=="number"||typeof q.y!=="number"||!Number.isFinite(q.x)||!Number.isFinite(q.y)||Math.abs(q.x)>1600||Math.abs(q.y)>10000)throw Error("보드 위치를 확인해 주세요.");
     if(q.scale!==undefined&&(typeof q.scale!=="number"||!Number.isFinite(q.scale)||q.scale<.3||q.scale>2))throw Error("보드 요소 크기를 확인해 주세요.");
@@ -357,7 +370,8 @@ export function cleanCityPlan(value: unknown): CityPlan {
 export const hasText = (s: string) => !!s.trim();
 export function planChecks(p: CityPlan) {
   return [
-    {name:"관점 비교와 좋은 도시의 기준",done:[p.theoryCommon,p.theoryTension,p.theoryPriority,p.goodCity,p.goodCityReason,p.goodCityCriteria].every(hasText)},
+    {name:"이론 비교",done:[p.theoryCommon,p.theoryTension,p.theoryPriority].every(hasText)},
+    {name:"나의 좋은 도시 기준",done:[p.goodCity,p.goodCityReason,p.goodCityCriteria].every(hasText)},
     {
       name: "모델 도시 살펴보기",
       done: [p.modelCity, p.modelReason, p.modelLearn, p.modelAdapt].every(hasText),
@@ -387,6 +401,7 @@ export function particle(value: string, yes: string, no: string) {
   return n >= 0 && n <= 11171 && n % 28 !== 0 ? yes : no;
 }
 export function cityDeclaration(p: CityPlan) {
+  if (hasText(p.declaration)) return p.declaration;
   if (![p.city, p.audience, p.problem, p.promise].every(hasText)) return "";
   return `${p.city}${particle(p.city, "은", "는")} ${p.audience}${particle(p.audience, "을", "를")} 위해 ${p.problem}${particle(p.problem, "을", "를")} 줄이고, ${p.promise}${particle(p.promise, "을", "를")} 목표로 합니다.`;
 }
@@ -398,12 +413,12 @@ export function selectedSources(p: CityPlan) {
 export function planReportSections(p: CityPlan) {
   return [
     {title:"이론적 배경과 내가 생각하는 좋은 도시",paragraphs:[
-      p.goodCity ? "좋은 도시의 정의: " + p.goodCity : "",
       p.theoryConcepts.length ? "비교를 위해 선택한 교과 개념: " + p.theoryConcepts.map(key=>planningConcepts[key].name).join(", ") : "",
       p.theorySources.length ? "비교를 위해 선택한 연구: " + p.theorySources.map(key=>planningSources[key].name).join(", ") : "",
       p.theoryCommon ? "공통으로 중요하게 본 점: "+p.theoryCommon : "",
       p.theoryTension ? "관점의 차이·상충·보완: "+p.theoryTension : "",
       p.theoryPriority ? "우선할 관점과 이유: "+p.theoryPriority : "",
+      p.goodCity ? "좋은 도시의 정의: " + p.goodCity : "",
       p.goodCityReason ? "정의한 근거: " + p.goodCityReason : "",p.goodCityCriteria ? "내 설계의 기준: " + p.goodCityCriteria : "",
     ]},
     {

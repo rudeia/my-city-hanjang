@@ -134,9 +134,18 @@ function TheoryStart({p,change,field}:{p:CityPlan;change:(p:CityPlan)=>void;fiel
       <span className="kicker">비교에서 나의 판단으로</span><h2>여러 관점을 읽고 정리하기</h2><p className="tiny">작성 질문을 따라 자신의 판단을 정리. 예시는 펼쳐 읽는 참고 자료이며 답안에 입력되지 않습니다.</p>
       {field("theoryCommon")}{field("theoryTension")}{field("theoryPriority")}
     </section>
+
+  </div>;
+}
+function CriteriaStart({p,field}:{p:CityPlan;field:(key:PlanField,short?:boolean)=>ReactNode}) {
+  return <div className="theory-start criteria-start">
+    <section className="comparison-recap" aria-label="앞에서 비교한 내용">
+      <h2>이론 비교 돌아보기</h2>
+      <dl>{(["theoryCommon","theoryTension","theoryPriority"] as const).map(key=><div key={key}><dt>{planFields[key].label}</dt><dd>{p[key] || "이론 비교에서 아직 작성하지 않았습니다."}</dd></div>)}</dl>
+    </section>
     <section className="good-city-definition">
-      <span className="kicker">나의 기준</span><h2>비교한 내용을 바탕으로, 내가 생각하는 좋은 도시는?</h2>
-      <p className="tiny">우선할 관점과 그 이유를 바탕으로 도시의 정의와 실제 설계에서 확인할 기준을 작성.</p>
+      <span className="kicker">나의 기준</span><h2>내가 생각하는 좋은 도시는?</h2>
+      <p className="tiny">비교한 관점을 근거로 좋은 도시의 정의와 내 설계에서 확인할 기준을 작성하세요.</p>
       {field("goodCity")}{field("goodCityReason")}{field("goodCityCriteria")}
     </section>
   </div>;
@@ -289,7 +298,7 @@ function Report({
   edit,
 }: {
   p: CityPlan;
-  edit: (section: PlanSection | "theory" | "intro" | "reference", plan?: number) => void;
+  edit: (section: PlanSection | "theory" | "criteria" | "intro" | "reference", plan?: number) => void;
 }) {
   const sections = planReportSections(p);
   return (
@@ -301,6 +310,7 @@ function Report({
           <h2>
             {i + 1}. {section.title}
           </h2>
+          {i === 0 && <button type="button" onClick={()=>edit("criteria")}>나의 기준 수정</button>}
           {i === 1 && <ReferencePhotoView plan={p} />}
           {i === 3 ? (
             <>
@@ -351,7 +361,7 @@ function Report({
                   )
                 }
               >
-                설계판에서 수정
+                내용 수정
               </button>
             </>
           )}
@@ -490,8 +500,8 @@ export default function CityStudio() {
     }
     change({ ...p, view: "design", section: "plans" });
   }
-  function edit(section: PlanSection | "theory" | "intro" | "reference", index = 0) {
-    if (section === "theory" || section === "intro" || section === "reference") show(section);
+  function edit(section: PlanSection | "theory" | "criteria" | "intro" | "reference", index = 0) {
+    if (section === "theory" || section === "criteria" || section === "intro" || section === "reference") show(section);
     else change({ ...p, view: "design", section, selectedPlan: index });
   }
   function downloadActivity() {
@@ -637,8 +647,8 @@ export default function CityStudio() {
       setExporting(false);
     }
   }
-  const stageViews = ["theory", "reference", "intro", "design", "report", "board"] as const;
-  const stageLabels = ["이론·나의 기준", "모델 도시", "도시 선언", "도시 설계판", "계획 보고서", "브랜드 보드"];
+  const stageViews = ["theory", "criteria", "reference", "intro", "design", "report", "board"] as const;
+  const stageLabels = ["이론 비교", "나의 기준", "모델 도시", "도시 선언", "도시 설계판", "계획 보고서", "브랜드 보드"];
   const stageIndex = stageViews.indexOf(p.view);
   const visibleStrategies = Math.max(strategyCount, p.selectedPlan + 1, p.plans.reduce((n, s, i) => Object.values(s).some(Boolean) ? i + 1 : n, 1));
   return (
@@ -674,9 +684,14 @@ export default function CityStudio() {
           <div className="page-heading">
             <div>
               <span className="kicker">MY CITY · {String(stageIndex + 1).padStart(2, "0")}</span>
-              <h1>{["도시를 계획하는 첫 장", "모델 도시에서 배울 점", "내 도시의 약속", p.city || "생각을 공간으로", "나의 도시 계획 보고서", "나의 도시, 한 장으로"][stageIndex]}</h1>
+              <h1>{["도시를 계획하는 첫 장", "좋은 도시의 기준 세우기", "모델 도시에서 배울 점", "내 도시의 약속", p.city || "생각을 공간으로", "나의 도시 계획 보고서", "나의 도시, 한 장으로"][stageIndex]}</h1>
             </div>
             {p.view === "theory" && <button className="plan-primary" type="button" onClick={()=>{
+              const missing=(["theoryCommon","theoryTension","theoryPriority"] as const).find(key=>!p[key].trim());
+              if(missing){setError(true);setMessage(planFields[missing].label+"을 작성해 주세요.");document.getElementById("plan-"+missing)?.focus();return;}
+              show("criteria");
+            }}>비교를 바탕으로 나의 기준 정리 →</button>}
+            {p.view === "criteria" && <button className="plan-primary" type="button" onClick={()=>{
               const missing=(["goodCity","goodCityReason","goodCityCriteria"] as const).find(key=>!p[key].trim());
               if(missing){setError(true);setMessage(planFields[missing].label+"을 작성해 주세요.");document.getElementById("plan-"+missing)?.focus();return;}
               show("reference");
@@ -690,6 +705,7 @@ export default function CityStudio() {
             </div>}
           </div>
           {p.view === "theory" && <TheoryStart p={p} change={change} field={field} />}
+          {p.view === "criteria" && <><button type="button" className="criteria-back" onClick={()=>show("theory")}>← 이론 비교 수정</button><CriteriaStart p={p} field={field}/></>}
           {(["reference","intro","design"] as string[]).includes(p.view) && <GoodCityCriteria p={p} />}
           {p.view === "reference" && <div className="reference-workbench">
             <section className="photo-paper">
@@ -707,8 +723,9 @@ export default function CityStudio() {
             <section className="sticky-note note-pink">{field("problem")}</section>
             <section className="sticky-note note-blue">{field("promise")}</section>
             <section className="declaration-preview">
-              <span className="kicker">도시 선언</span>
-              <p>{cityDeclaration(p) || "주민과 바라는 생활을 적어주세요."}</p>
+              {field("declaration")}
+              <p className="tiny">앞에서 정리한 주민·불편·바라는 생활을 연결해 도시의 약속을 적으세요. 작성한 선언문은 보고서와 브랜드 보드에 반영됩니다.</p>
+              <details><summary>앞의 메모로 만든 초안 보기</summary><p>{cityDeclaration({...p,declaration:""}) || "주민과 바라는 생활을 먼저 적어 주세요."}</p></details>
             </section>
           </div>}
           {p.view === "design" && <>

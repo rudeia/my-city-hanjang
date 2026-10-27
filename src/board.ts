@@ -1,3 +1,4 @@
+import {stickerKinds,stickerSVG} from "./stickers";
 import { xml, lines, type BoardDocument, type BoardBlock } from "./svg-text";
 import {
   COLS,
@@ -262,6 +263,11 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
   );
   y += 35;
   endBlock(sourcesBlock,y);
+  for(const sticker of p.boardStickers??[]){
+    const block=beginBlock(sticker.id as BoardBlockId,stickerKinds[sticker.kind].label+" 스티커",120,320,120);
+    s+=`<g data-sticker="${sticker.id}" transform="translate(120 320)">${stickerSVG(sticker)}</g>`;
+    endBlock(block,440);
+  }
   const height = Math.ceil(Math.max(1500,...blocks.map(b=>b.y+b.height+32)));
   return {
     name: "브랜드 보드",

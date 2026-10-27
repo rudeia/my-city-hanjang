@@ -166,3 +166,27 @@ const scaledDoc=b.makePlanBoard(scaledPlan),scaledMap=scaledDoc.blocks.find(x=>x
 assert.equal(scaledMap.width,originalMap.width*.65);assert.equal(scaledMap.height,originalMap.height*.65);assert.ok(scaledDoc.svg.includes('scale(0.65)'));
 for(const scale of [0,2.01,NaN])assert.throws(()=>m.cleanCityPlan({...p,boardLayout:{map:{x:0,y:0,scale}}}));
 console.log('PASS: per-element proportional scale and invalid size rejection');
+
+const separated=m.cleanCityPlan({...p,view:"criteria",declaration:"우리 도시는 모든 주민이 필요한 생활시설에 걸어서 닿도록 계획한다."});
+assert.equal(separated.view,"criteria");
+assert.equal(m.cityDeclaration(separated),separated.declaration);
+assert.ok(m.planReportSections(separated).some(s=>s.paragraphs.includes(separated.declaration)));
+assert.ok(b.makePlanBoard(separated).svg.includes(separated.declaration));
+assert.equal(m.cleanCityPlan(JSON.parse(JSON.stringify(separated))).declaration,separated.declaration);
+const legacyDeclaration={...p}; delete legacyDeclaration.declaration;
+assert.equal(m.cleanCityPlan(legacyDeclaration).declaration,"");
+assert.equal(m.cityDeclaration(m.cleanCityPlan(legacyDeclaration)),m.cityDeclaration({...p,declaration:""}));
+console.log("PASS: separate criteria page, declaration round-trip, legacy fallback and report/board linkage");
+
+const stickerPlan=m.cleanCityPlan({...p,boardStickers:[{id:"sticker-test",kind:"arrow",color:"blue",rotation:90}],boardLayout:{"sticker-test":{x:300,y:700,scale:1.5}}});
+assert.deepEqual(m.cleanCityPlan(JSON.parse(JSON.stringify(stickerPlan))),stickerPlan);
+const stickerBoard=b.makePlanBoard(stickerPlan),stickerBlock=stickerBoard.blocks.find(v=>v.id==="sticker-test");
+assert.equal(stickerBlock.scale,1.5);assert.equal(stickerBlock.x,420);assert.equal(stickerBlock.y,1020);
+assert.ok(stickerBoard.svg.includes('rotate(90 60 60)'));assert.ok(stickerBoard.svg.includes('#527ba0'));
+assert.deepEqual(m.planReportSections(stickerPlan),m.planReportSections(p));
+const oldStickers={...p};delete oldStickers.boardStickers;assert.deepEqual(m.cleanCityPlan(oldStickers).boardStickers,[]);
+for(const update of [{kind:"<script>"},{color:"url(https://example.com)"},{rotation:NaN},{rotation:45},{id:"sticker-<bad>"}])assert.throws(()=>m.cleanCityPlan({...p,boardStickers:[{...stickerPlan.boardStickers[0],...update}]}));
+assert.throws(()=>m.cleanCityPlan({...p,boardStickers:[...stickerPlan.boardStickers,...stickerPlan.boardStickers]}));
+assert.throws(()=>m.cleanCityPlan({...p,boardStickers:[],boardLayout:{"sticker-test":{x:0,y:0}}}));
+assert.throws(()=>m.cleanCityPlan({...p,boardStickers:Array.from({length:41},(_,i)=>({...stickerPlan.boardStickers[0],id:`sticker-${i}`}))}));
+console.log("PASS: sticker portable state, SVG placement/color/rotation, legacy default and invalid/duplicate/orphan/limit rejection");
