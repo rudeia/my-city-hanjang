@@ -318,3 +318,43 @@ export function makePlanReport(p: CityPlan): BoardDocument {
   return { name: "계획 보고서", width, height,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img"><title>${xml(p.city || "나의 도시")} · 계획 보고서</title><style>text{font-family:${font};font-kerning:normal}</style>${rect(0, 0, width, height, paper)}${s}</svg>` };
 }
+
+/** A4 report pages: split text between complete lines; keep pictures and the map whole. */
+export function makePlanReportPages(p:CityPlan):BoardDocument[] {
+  const width=1600,height=width*297/210,pad=100,inner=width-pad*2,bottom=height-100;
+  const pages:string[]=[];let y=100,s="";
+  const next=()=>{pages.push(s);s="";y=100;};
+  const ensure=(space:number)=>{if(y+space>bottom&&s)next();};
+  const add=(value:string,size=26,color=ink,weight=400)=>{
+    const rows=value.split("\n").flatMap(v=>lines(v,inner,size));
+    rows.forEach((row,i)=>{
+      // Keep at least two lines together at the beginning of a paragraph.
+      ensure((i===0&&rows.length>1?1.65:0)*size+size*.45);
+      s+=text(row,pad,y,size,color,weight);y+=size*1.65;
+    });y+=18;
+  };
+  add("도시 한 장 · 나의 도시 계획 보고서",24,sub);
+  add(p.city||"도시 이름 미작성",60,ink,600);
+  planReportSections(p).forEach((section,index)=>{
+    ensure(32+54+32*1.65+18+26*2.1);
+    y+=32;s+=rect(pad,y,inner,2,line);y+=54;
+    add(`${index+1}. ${section.title}`,32,ink,500);
+    const values=section.paragraphs.filter(v=>v.trim());
+    if(values.length)values.forEach(value=>add(value));else add("미작성",24,sub);
+    if(index===1&&p.referenceImage){
+      const title=p.referenceTitle||p.modelCity||"참고사진",source="출처: "+(p.referenceSource||"미작성");
+      const captions=paragraph(title,0,0,inner,23).height+paragraph(source,0,0,inner,22).height+36;
+      ensure(480+captions);
+      s+=`<image data-report-image="reference" href="${p.referenceImage}" x="${pad}" y="${y}" width="${inner}" height="440" preserveAspectRatio="xMidYMid meet"/>`;
+      y+=480;add(title,23,sub);add(source,22,sub);
+    }
+    if(index===3){
+      const mapHeight=900*408/504;ensure(mapHeight+32);
+      s+=`<g data-report-image="map">${cityMapSVG(p,pad,y,900)}</g>`;y+=mapHeight+32;
+    }
+  });
+  const sources=selectedSources(p);
+  if(sources.length){ensure(24+28*1.65+18+22*1.65);y+=24;add("참고 자료",28,ink,500);sources.forEach(id=>add(`${planningSources[id].name} · DOI ${planningSources[id].doi}`,22,sub));}
+  if(s)pages.push(s);
+  return pages.map((content,i)=>({name:"계획 보고서",width,height,svg:`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><title>${xml(p.city||"나의 도시")} · 계획 보고서 ${i+1}</title><style>text{font-family:${font};font-kerning:normal}</style>${rect(0,0,width,height,paper)}${content}${text(`${i+1} / ${pages.length}`,width/2-25,height-42,22,sub)}</svg>`}));
+}

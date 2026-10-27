@@ -190,3 +190,27 @@ assert.throws(()=>m.cleanCityPlan({...p,boardStickers:[...stickerPlan.boardStick
 assert.throws(()=>m.cleanCityPlan({...p,boardStickers:[],boardLayout:{"sticker-test":{x:0,y:0}}}));
 assert.throws(()=>m.cleanCityPlan({...p,boardStickers:Array.from({length:41},(_,i)=>({...stickerPlan.boardStickers[0],id:`sticker-${i}`}))}));
 console.log("PASS: sticker portable state, SVG placement/color/rotation, legacy default and invalid/duplicate/orphan/limit rejection");
+
+for(const draft of [m.newCityPlan(),p,maximum]){
+ const pages=b.makePlanReportPages(draft),full=b.makePlanReport(draft);
+ const textRows=svg=>[...svg.matchAll(/<text\b[^>]*>(.*?)<\/text>/gs)].map(v=>v[1]);
+ assert.deepEqual(pages.flatMap(page=>textRows(page.svg).filter(t=>!/^\d+ \/ \d+$/.test(t))),textRows(full.svg));
+ for(const page of pages){
+  assert.equal(page.width,1600);assert.ok(Math.abs(page.height/page.width-297/210)<1e-9);
+  for(const row of page.svg.matchAll(/<text\b[^>]*y="([\d.]+)"[^>]*>/g))assert.ok(Number(row[1])>=100&&Number(row[1])<=page.height-40);
+  const map=page.svg.match(/data-report-image="map"><g transform="translate\(100 ([\d.]+)\)/);
+  if(map)assert.ok(Number(map[1])+900*408/504<=page.height-100);
+  const photo=page.svg.match(/data-report-image="reference"[^>]*y="([\d.]+)"/);
+  if(photo)assert.ok(Number(photo[1])+440<=page.height-100);
+ }
+ assert.equal(pages.filter(page=>page.svg.includes('data-report-image="map"')).length,1);
+}
+assert.ok(b.makePlanReportPages(maximum).length>1);
+console.log('PASS: A4 pagination preserves all text rows, page margins, and complete maps/photos');
+const examples=await loadModule('src/examples.ts');
+for(const key of ['keywords','mark','meaning','declaration']){
+ assert.ok(examples.fieldExamples[key]?.text);
+ assert.ok(!examples.fieldExamples[key].text.includes('note:'));
+ assert.ok(!examples.fieldExamples[key].text.includes('\\n'));
+}
+console.log('PASS: brand and declaration examples remain separate readable text fields');

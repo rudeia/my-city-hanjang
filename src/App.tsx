@@ -33,7 +33,7 @@ import {
   type PlanSection,
   type PlanView,
 } from "./model";
-import { makePlanBoard, makePlanReport } from "./board";
+import { makePlanBoard, makePlanReport, makePlanReportPages } from "./board";
 import { createSaveQueue } from "./save-queue";
 import CityMap from "./CityMap";
 import BoardLayoutEditor from "./BoardLayoutEditor";
@@ -594,7 +594,10 @@ export default function CityStudio() {
       if (!(await save(snapshot, rev))) return;
       const document = snapshot.planning.view === "report" ? makePlanReport(snapshot.planning) : makePlanBoard(snapshot.planning || initial);
       let blob: Blob;
-      if (kind === "svg") blob = new Blob([document.svg], { type: "image/svg+xml;charset=utf-8" });
+      if(kind === "pdf" && snapshot.planning.view === "report"){
+        const {reportPDF}=await import("./pdf-export");
+        blob=await reportPDF(makePlanReportPages(snapshot.planning));
+      } else if (kind === "svg") blob = new Blob([document.svg], { type: "image/svg+xml;charset=utf-8" });
       else {
         await window.document.fonts.ready;
         svgUrl = URL.createObjectURL(
