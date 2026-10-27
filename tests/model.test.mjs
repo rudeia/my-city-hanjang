@@ -145,3 +145,24 @@ assert.throws(()=>m.cleanCityPlan({...multi,theoryConcepts:null}));
 const addedStudies={...m.newCityPlan(),theorySources:["E","W","P"]};assert.deepEqual(m.cleanCityPlan(addedStudies).theorySources,["E","W","P"]);assert.deepEqual(m.selectedSources(addedStudies),["E","W","P"]);for(const id of addedStudies.theorySources)assert.ok(b.makePlanReport(addedStudies).svg.includes(m.planningSources[id].doi));
 
 assert.equal(m.planChecks({...p,theoryCommon:""})[0].done,false);
+
+// Layout offsets round-trip while leaving the report's source content unchanged.
+const layoutBase=b.makePlanBoard(p),layoutPlan={...p,boardLayout:{map:{x:640,y:240},'strategy-0':{x:-680,y:500}}};
+assert.deepEqual(m.cleanCityPlan(layoutPlan).boardLayout,layoutPlan.boardLayout);
+const layoutDoc=b.makePlanBoard(layoutPlan);
+assert.ok(layoutDoc.svg.includes('data-board-block="map" transform="translate(640 240)"'));
+assert.deepEqual(m.planReportSections(layoutPlan),m.planReportSections(p));
+assert.equal(layoutDoc.blocks.find(x=>x.id==='map').x,layoutBase.blocks.find(x=>x.id==='map').x+640);
+for(const block of layoutDoc.blocks){assert.ok(block.x>=16);assert.ok(block.x+block.width<=layoutDoc.width-15);assert.ok(block.y+block.height<=layoutDoc.height);}
+assert.ok(!layoutDoc.svg.includes('board-layout-handle'));
+const deepMove=b.makePlanBoard({...p,boardLayout:{map:{x:0,y:9000}}});assert.ok(deepMove.height>layoutBase.height);
+const noOldLayout={...m.newCityPlan()};delete noOldLayout.boardLayout;assert.deepEqual(m.cleanCityPlan(noOldLayout).boardLayout,{});
+for(const boardLayout of [null,{unknown:{x:0,y:0}},{map:{x:Infinity,y:0}},{map:{x:0,y:10001}}])assert.throws(()=>m.cleanCityPlan({...m.newCityPlan(),boardLayout}));
+console.log('PASS: board layout serialization, legacy defaults, bounds, report independence and exported transforms');
+
+const scaledPlan={...p,boardLayout:{map:{x:240,y:120,scale:.65}}};
+assert.deepEqual(m.cleanCityPlan(scaledPlan).boardLayout,scaledPlan.boardLayout);
+const scaledDoc=b.makePlanBoard(scaledPlan),scaledMap=scaledDoc.blocks.find(x=>x.id==='map'),originalMap=layoutBase.blocks.find(x=>x.id==='map');
+assert.equal(scaledMap.width,originalMap.width*.65);assert.equal(scaledMap.height,originalMap.height*.65);assert.ok(scaledDoc.svg.includes('scale(0.65)'));
+for(const scale of [0,2.01,NaN])assert.throws(()=>m.cleanCityPlan({...p,boardLayout:{map:{x:0,y:0,scale}}}));
+console.log('PASS: per-element proportional scale and invalid size rejection');

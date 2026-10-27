@@ -1,4 +1,4 @@
-import { xml, lines, type BoardDocument } from "./svg-text";
+import { xml, lines, type BoardDocument, type BoardBlock } from "./svg-text";
 import {
   COLS,
   ROWS,
@@ -11,6 +11,7 @@ import {
   planChecks,
   planReportSections,
   type CityPlan,
+  type BoardBlockId,
 } from "./model";
 const ink = "#293f49",
   sub = "#596870",
@@ -84,11 +85,27 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
     s += part.svg;
     y += part.height;
   };
+  const blocks:BoardBlock[]=[];
+  const beginBlock=(id:BoardBlockId,label:string,x:number,top:number,w:number)=>({id,label,x,top,w,start:s.length});
+  const endBlock=(b:ReturnType<typeof beginBlock>,bottom:number)=>{
+    const h=Math.max(32,bottom-b.top),saved=p.boardLayout?.[b.id];
+    const scale=Math.max(.3,Math.min(2,(width-32)/b.w,saved?.scale??1));
+    const x=Math.max(16,Math.min(width-16-b.w*scale,b.x+(saved?.x??0)));
+    const top=Math.max(16,b.top+(saved?.y??0));
+    const part=s.slice(b.start),transform=scale===1?`translate(${x-b.x} ${top-b.top})`:`translate(${x} ${top}) scale(${scale}) translate(${-b.x} ${-b.top})`;
+    s=s.slice(0,b.start)+`<g data-board-block="${b.id}" transform="${transform}">${part}</g>`;
+    blocks.push({id:b.id,label:b.label,baseX:b.x,baseY:b.top,baseWidth:b.w,baseHeight:h,scale,x,y:top,width:b.w*scale,height:h*scale});
+  };
   add("도시 한 장 · 나의 도시 브랜드 보드", 23, sub, 500);
   y += 30;
+  const contentWidth=(items:[string,number][],limit=inner)=>Math.min(limit,Math.max(240,...items.flatMap(([value,size])=>value.split("\n").flatMap(part=>lines(part,limit,size).map(row=>Array.from(row).reduce((sum,c)=>sum+(/[\u0020-\u007E]/.test(c)?(/[il.,' ]/.test(c)?.4:.78):1.06)*size,0)+20)))));
+
   if (p.mark) {
+    const symbolBlock=beginBlock("symbol","글자 상징",1399,118,112);
     s += `<circle cx="1455" cy="174" r="56" fill="${soft}"/><text x="1455" y="185" text-anchor="middle" font-size="${Array.from(p.mark).length > 3 ? 22 : 30}" fill="${ink}">${xml(p.mark)}</text>`;
+    endBlock(symbolBlock,230);
   }
+  const identityBlock=beginBlock("identity","도시명·슬로건·핵심어",pad,y-78,contentWidth([[p.city||"도시 이름 작성 전",78],[p.slogan||"슬로건 작성 전",37],[p.keywords,25]]));
   add(p.city || "도시 이름 작성 전", 78, ink, 600, p.mark ? 1250 : inner);
   y += 8;
   add(p.slogan || "슬로건 작성 전", 37, sub, 500);
@@ -97,14 +114,18 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
     add(p.keywords, 25, ink, 500);
     y += 20;
   }
-  if(p.goodCity.trim()) { add("내가 생각하는 좋은 도시",23,sub,500); y+=8; add(p.goodCity,27); y+=20; }
-  if(p.goodCityCriteria.trim()){ add("좋은 도시를 판단할 나의 기준",23,sub,500); y+=8; add(p.goodCityCriteria,24); y+=20; }
+  endBlock(identityBlock,y);
+  if(p.goodCity.trim()) { const b=beginBlock("definition","좋은 도시의 정의",pad,y-24,contentWidth([["내가 생각하는 좋은 도시",23],[p.goodCity,27]])); add("내가 생각하는 좋은 도시",23,sub,500); y+=8; add(p.goodCity,27); y+=20; endBlock(b,y); }
+  if(p.goodCityCriteria.trim()){ const b=beginBlock("criteria","나의 설계 기준",pad,y-24,contentWidth([["좋은 도시를 판단할 나의 기준",23],[p.goodCityCriteria,24]])); add("좋은 도시를 판단할 나의 기준",23,sub,500); y+=8; add(p.goodCityCriteria,24); y+=20; endBlock(b,y); }
+  const declarationBlock=beginBlock("declaration","도시 선언",pad,y-31,contentWidth([[cityDeclaration(p)||"도시 선언을 쓰면 여기에 표시돼요.",31]]));
   add(cityDeclaration(p) || "도시 선언을 쓰면 여기에 표시돼요.", 31);
   y += 30;
+  endBlock(declarationBlock,y);
   const top = y,
     mapWidth = 680,
     splitX = 820,
     rightWidth = 708;
+  const mapBlock=beginBlock("map","공간 구상도",pad,top-30,mapWidth);
   s += text("우리가 계획한 공간", pad, top, 27, ink, 500);
   s += cityMapSVG(p, pad, top + 24, mapWidth);
   const legend = paragraph(
@@ -116,10 +137,13 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
     sub,
   );
   s += legend.svg;
+  endBlock(mapBlock,top + (mapWidth*408)/504+85+legend.height);
   let ry = top;
+  const firstStrategyBlock=beginBlock("strategy-0","전략 1·전략 제목",splitX-16,top-30,rightWidth+24);
   s += text("약속을 만드는 세 전략", splitX, ry, 27, ink, 500);
   ry += 48;
   p.plans.forEach((strategy, i) => {
+    const strategyBlock=i===0?firstStrategyBlock:beginBlock(`strategy-${i}` as BoardBlockId,`전략 ${i+1}`,splitX-16,ry-24,rightWidth+24);
     const noteStart = ry;
     const noteContentStart = s.length;
     s += rect(splitX, ry - 14, rightWidth, 2, line);
@@ -156,11 +180,13 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
     ry += 23;
     const noteContent = s.slice(noteContentStart);
     s = s.slice(0, noteContentStart) + rect(splitX - 16, noteStart - 24, rightWidth + 24, ry - noteStart + 6, [soft, "#faeeee", "#eef3fa"][i], 3) + noteContent;
+    endBlock(strategyBlock,ry+6);
     ry += 20;
   });
   y = Math.max(ry, top + (mapWidth * 408) / 504 + 85 + legend.height) + 40;
   const columnWidth = 680;
-  const note = (heading: string, value: string, x: number) => {
+  const note = (id:BoardBlockId,heading: string, value: string, x: number) => {
+    const block=beginBlock(id,heading,x,y-28,columnWidth);
     let cy = y;
     s += text(heading, x, cy, 25, ink, 500);
     cy += 44;
@@ -173,17 +199,21 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
       value ? ink : sub,
     );
     s += body.svg;
+    endBlock(block,cy+body.height+8);
     return cy + body.height;
   };
-  const a = note("이름과 상징의 의미", p.meaning, pad),
-    b = note("계획에서 고려할 점", p.tradeoff, splitX);
+  const a = note("meaning","이름과 상징의 의미", p.meaning, pad),
+    b = note("tradeoff","계획에서 고려할 점", p.tradeoff, splitX);
   y = Math.max(a, b) + 42;
   if (p.check) {
+    const b=beginBlock("check","도시짓기 확인 계획",pad,y-25,inner);
     add("도시를 지으며 확인할 것", 25, ink, 500);
     y += 10;
     add(p.check, 23, sub);
     y += 30;
+    endBlock(b,y);
   }
+  const referenceBlock=p.modelCity?beginBlock("reference","모델 도시 관찰 메모",pad,y-25,inner):null;
   if (p.modelCity) {
     add("참고한 모델 도시 · " + p.modelCity, 25, ink, 500);
     y += 12;
@@ -200,7 +230,9 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
     add("참고자료: " + p.referenceSource, 20, sub);
     y += 18;
   }
+  if(referenceBlock)endBlock(referenceBlock,y);
   if (p.referenceImage) {
+    const photoBlock=beginBlock("reference-photo","첨부한 도시 위성사진·출처",pad,y-25,inner);
     add("참고한 도시의 위성사진", 25, ink, 500);
     y += 12;
     s += `<image href="${p.referenceImage}" x="${pad}" y="${y}" width="${inner}" height="420" preserveAspectRatio="xMidYMid meet"/>`;
@@ -210,7 +242,9 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
     y += 12;
     add("실제 도시를 살펴보는 참고자료입니다. 위의 공간 구상도와 구분해 읽어 주세요.", 20, sub);
     y += 30;
+    endBlock(photoBlock,y);
   }
+  const sourcesBlock=beginBlock("sources","출처·작성 상태",pad,y,inner);
   s += rect(pad, y, inner, 2, line);
   y += 44;
   const chosen = selectedSources(p);
@@ -227,9 +261,11 @@ export function makePlanBoard(p: CityPlan): BoardDocument {
     sub,
   );
   y += 35;
-  const height = Math.ceil(Math.max(1500, y));
+  endBlock(sourcesBlock,y);
+  const height = Math.ceil(Math.max(1500,...blocks.map(b=>b.y+b.height+32)));
   return {
     name: "브랜드 보드",
+    blocks,
     width,
     height,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img"><title>${xml(p.city || "나의 도시")} · 브랜드 보드</title><desc>보고서와 같은 학생 작성 내용, 시설 구상도와 칸 사이 도로망</desc><style>text{font-family:${font};font-kerning:normal}</style>${rect(0, 0, width, height, paper)}${s}</svg>`,

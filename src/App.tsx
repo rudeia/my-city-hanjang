@@ -36,6 +36,7 @@ import {
 import { makePlanBoard, makePlanReport } from "./board";
 import { createSaveQueue } from "./save-queue";
 import CityMap from "./CityMap";
+import BoardLayoutEditor from "./BoardLayoutEditor";
 import {ConceptReading,ResearchReading} from "./LearningReading";
 import {conceptGuides,researchGuides} from "./learning";
 import ReferencePhoto, { ReferencePhotoView } from "./ReferencePhoto";
@@ -737,7 +738,7 @@ export default function CityStudio() {
             </details>
           </>}
           {p.view === "report" && <Report p={p} edit={edit} />}
-          {p.view === "board" && <div className="plan-board-image" aria-label="브랜드 보드 미리보기" dangerouslySetInnerHTML={board ? { __html: board.svg } : undefined} />}
+          {p.view === "board" && board && <BoardLayoutEditor plan={p} document={board} onChange={change} disabled={!ready || exporting}/>}
         </fieldset>
       </main>
       <footer className="city-footer">이 브라우저에 자동 저장 · 다른 기기로 옮길 때는 활동 파일 저장</footer>

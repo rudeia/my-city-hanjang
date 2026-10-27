@@ -158,8 +158,12 @@ export type Strategy = Record<StrategyField, string> & {
 };
 export type PlanView = "theory" | "reference" | "intro" | "design" | "report" | "board";
 export type PlanSection = "research" | "plans" | "values" | "brand" | "reflection";
+export const boardBlockIds = ["identity","symbol","definition","criteria","declaration","map","strategy-0","strategy-1","strategy-2","meaning","tradeoff","check","reference","reference-photo","sources"] as const;
+export type BoardBlockId = typeof boardBlockIds[number];
+export type BoardLayout = Partial<Record<BoardBlockId,{x:number;y:number;scale?:number}>>;
 export type CityPlan = Record<PlanField, string> & {
   version: 1;
+  boardLayout: BoardLayout;
   started: boolean;
   view: PlanView;
   section: PlanSection;
@@ -178,6 +182,7 @@ export function newCityPlan(): CityPlan {
       string
     >),
     version: 1,
+    boardLayout: {},
     started: false,
     view: "theory",
     theoryConcepts: [],
@@ -334,6 +339,15 @@ export function cleanCityPlan(value: unknown): CityPlan {
   )
     throw Error("참고사진을 확인해 주세요. JPG·PNG·WebP 파일을 앱에서 다시 선택할 수 있어요.");
   out.referenceImage = image;
+  const layout=v.boardLayout===undefined?{}:v.boardLayout;
+  if(!layout||typeof layout!=="object"||Array.isArray(layout)||Object.keys(layout).length>boardBlockIds.length)throw Error("보드 배치를 확인해 주세요.");
+  for(const [id,position] of Object.entries(layout)) {
+    if(!boardBlockIds.includes(id as BoardBlockId)||!position||typeof position!=="object"||Array.isArray(position))throw Error("보드 배치를 확인해 주세요.");
+    const q=position as Record<string,unknown>;
+    if(typeof q.x!=="number"||typeof q.y!=="number"||!Number.isFinite(q.x)||!Number.isFinite(q.y)||Math.abs(q.x)>1600||Math.abs(q.y)>10000)throw Error("보드 위치를 확인해 주세요.");
+    if(q.scale!==undefined&&(typeof q.scale!=="number"||!Number.isFinite(q.scale)||q.scale<.3||q.scale>2))throw Error("보드 요소 크기를 확인해 주세요.");
+    out.boardLayout[id as BoardBlockId]={x:q.x,y:q.y,...(q.scale!==undefined?{scale:q.scale as number}:{})};
+  }
   out.started = v.started;
   out.view = v.view as PlanView;
   out.section = v.section as PlanSection;

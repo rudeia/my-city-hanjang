@@ -1,4 +1,5 @@
-export type BoardDocument = { svg: string; width: number; height: number; name: string };
+export type BoardBlock = {id:string;label:string;baseX:number;baseY:number;baseWidth:number;baseHeight:number;scale:number;x:number;y:number;width:number;height:number};
+export type BoardDocument = { svg: string; width: number; height: number; name: string; blocks?: BoardBlock[] };
 export function xml(s: string) {
   return s
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
